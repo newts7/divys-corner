@@ -1,0 +1,18 @@
+{
+  "name": "divys",
+  "version": "1.0.0",
+  "description": "Divy's - A personal journal blog",
+  "type": "module",
+  "scripts": {
+    "build": "node build.js",
+    "dev": "node build.js && npx serve dist",
+    "watch": "node --watch build.js"
+  },
+  "dependencies": {
+    "marked": "^15.0.0",
+    "front-matter": "^4.0.2"
+  },
+  "devDependencies": {
+    "serve": "^14.2.0"
+  }
+}
