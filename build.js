@@ -7,6 +7,24 @@ const POSTS_DIR = './posts';
 const DIST_DIR = './dist';
 const PUBLIC_DIR = './public';
 
+// Site-wide config (drives canonical URLs, sitemap, Open Graph, RSS, structured data)
+const SITE = {
+  url: 'https://divys.blog',
+  name: "Divy's",
+  title: "Divy's — Musings on Programming, Philosophy & Life",
+  description:
+    "The personal journal of Divyanshu — essays and notes on programming, philosophy, cloud engineering, and life.",
+  author: 'Divyanshu',
+  twitter: '@__newts',
+  locale: 'en_US',
+  image: 'https://divys.blog/og-default.svg',
+  social: [
+    'https://github.com/newts7',
+    'https://www.linkedin.com/in/imnewts/',
+    'https://x.com/__newts',
+  ],
+};
+
 // Ensure dist directory exists
 if (!fs.existsSync(DIST_DIR)) {
   fs.mkdirSync(DIST_DIR, { recursive: true });
@@ -20,15 +38,70 @@ function copyPublicFiles() {
   }
 }
 
+// Escape a string for safe use inside HTML attributes / XML text
+function esc(str = '') {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // HTML Templates
-const baseTemplate = (content, title = "Divy's") => `<!DOCTYPE html>
+const baseTemplate = (content, meta = {}) => {
+  const {
+    title = SITE.title,
+    description = SITE.description,
+    pagePath = '',
+    type = 'website',
+    image = SITE.image,
+    publishedTime = null,
+    tags = [],
+    jsonLd = null,
+  } = meta;
+
+  const canonical = SITE.url + (pagePath ? `/${pagePath}` : '/');
+  const jsonLdBlock = jsonLd
+    ? `\n  <script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>`
+    : '';
+
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%231d1d1f' rx='22' width='100' height='100'/><text x='50' y='68' text-anchor='middle' fill='%23ffffff' font-family='-apple-system,SF Pro Display,sans-serif' font-size='58' font-weight='600'>D</text></svg>">
+  <title>${esc(title)}</title>
+  <meta name="description" content="${esc(description)}">
+  <meta name="author" content="${esc(SITE.author)}">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+  <meta name="theme-color" content="#1d1d1f">
+  <link rel="canonical" href="${canonical}">
+  <link rel="alternate" type="application/rss+xml" title="${esc(SITE.name)} RSS Feed" href="${SITE.url}/feed.xml">
+  <link rel="sitemap" type="application/xml" href="${SITE.url}/sitemap.xml">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="${type}">
+  <meta property="og:title" content="${esc(title)}">
+  <meta property="og:description" content="${esc(description)}">
+  <meta property="og:url" content="${canonical}">
+  <meta property="og:site_name" content="${esc(SITE.name)}">
+  <meta property="og:image" content="${image}">
+  <meta property="og:locale" content="${SITE.locale}">${
+    publishedTime ? `\n  <meta property="article:published_time" content="${publishedTime}">` : ''
+  }${type === 'article' ? `\n  <meta property="article:author" content="${esc(SITE.author)}">` : ''}${
+    tags.length ? '\n  ' + tags.map((t) => `<meta property="article:tag" content="${esc(t)}">`).join('\n  ') : ''
+  }
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${esc(title)}">
+  <meta name="twitter:description" content="${esc(description)}">
+  <meta name="twitter:image" content="${image}">
+  <meta name="twitter:creator" content="${esc(SITE.twitter)}">
+
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%231d1d1f' rx='22' width='100' height='100'/><text x='50' y='68' text-anchor='middle' fill='%23ffffff' font-family='-apple-system,SF Pro Display,sans-serif' font-size='58' font-weight='600'>D</text></svg>">${jsonLdBlock}
 </head>
 <body>
   <div class="container">
@@ -40,15 +113,16 @@ const baseTemplate = (content, title = "Divy's") => `<!DOCTYPE html>
   </div>
 </body>
 </html>`;
+};
 
 const headerTemplate = `
 <header>
-  <h1 class="site-title">Divy's</h1>
+  <h1 class="site-title"><a href="/">Divy's</a></h1>
   <p class="site-subtitle">Musings of a wandering mind</p>
   <p class="site-tagline">Programming • Philosophy • Life</p>
   <nav>
-    <a href="index.html">Journal</a>
-    <a href="about.html">About</a>
+    <a href="/">Journal</a>
+    <a href="/about">About</a>
   </nav>
 </header>`;
 
@@ -58,7 +132,7 @@ const sidebarTemplate = (tags, years, activeTag = null, activeYear = null) => `
     <h3 class="sidebar-title">Years</h3>
     <ul class="sidebar-list">
       ${years.map(y => `
-        <li><a href="year-${y.year}.html" class="${activeYear === y.year ? 'active' : ''}">${y.year}<span class="count">${y.count}</span></a></li>
+        <li><a href="/year-${y.year}" class="${activeYear === y.year ? 'active' : ''}">${y.year}<span class="count">${y.count}</span></a></li>
       `).join('')}
     </ul>
   </div>
@@ -66,7 +140,7 @@ const sidebarTemplate = (tags, years, activeTag = null, activeYear = null) => `
     <h3 class="sidebar-title">Topics</h3>
     <ul class="sidebar-list">
       ${tags.map(t => `
-        <li><a href="tag-${t.slug}.html" class="${activeTag === t.slug ? 'active' : ''}">${t.name}<span class="count">${t.count}</span></a></li>
+        <li><a href="/tag-${t.slug}" class="${activeTag === t.slug ? 'active' : ''}">${t.name}<span class="count">${t.count}</span></a></li>
       `).join('')}
     </ul>
   </div>
@@ -74,19 +148,19 @@ const sidebarTemplate = (tags, years, activeTag = null, activeYear = null) => `
 
 const postListItemTemplate = (post) => `
 <li class="post-item">
-  <span class="post-date">${formatDate(post.date)}</span>
-  <h2 class="post-title"><a href="${post.slug}.html">${post.title}</a></h2>
+  <span class="post-date"><time datetime="${isoDate(post.date)}">${formatDate(post.date)}</time></span>
+  <h2 class="post-title"><a href="/${post.slug}">${post.title}</a></h2>
   <p class="post-excerpt">${post.excerpt || ''}</p>
-  ${post.tags && post.tags.length > 0 ? `<div class="post-tags">${post.tags.map(t => `<a href="tag-${slugify(t)}.html" class="tag">${t}</a>`).join('')}</div>` : ''}
+  ${post.tags && post.tags.length > 0 ? `<div class="post-tags">${post.tags.map(t => `<a href="/tag-${slugify(t)}" class="tag">${t}</a>`).join('')}</div>` : ''}
 </li>`;
 
 const postTemplate = (post, tags, years) => `
-<a href="index.html" class="back-link">Back to Journal</a>
+<a href="/" class="back-link">Back to Journal</a>
 <div class="content-wrapper">
   <article class="post">
     <header>
       <h1 class="post-title">${post.title}</h1>
-      <p class="post-meta">${formatDate(post.date)}${post.tags && post.tags.length > 0 ? ` · ${post.tags.map(t => `<a href="tag-${slugify(t)}.html">${t}</a>`).join(', ')}` : ''}</p>
+      <p class="post-meta"><time datetime="${isoDate(post.date)}">${formatDate(post.date)}</time>${post.tags && post.tags.length > 0 ? ` · ${post.tags.map(t => `<a href="/tag-${slugify(t)}">${t}</a>`).join(', ')}` : ''}</p>
     </header>
     <div class="post-content">
       ${post.content}
@@ -137,6 +211,16 @@ function formatDate(dateStr) {
   return date.toLocaleDateString('en-US', options);
 }
 
+// YYYY-MM-DD for <time datetime> and sitemap <lastmod>
+function isoDate(dateStr) {
+  return new Date(dateStr).toISOString().split('T')[0];
+}
+
+// Full ISO 8601 for article:published_time
+function isoDateTime(dateStr) {
+  return new Date(dateStr).toISOString();
+}
+
 function getSlug(filename) {
   return filename.replace(/\.md$/, '');
 }
@@ -153,6 +237,57 @@ function getExcerpt(content, maxLength = 160) {
 
 function getYear(dateStr) {
   return new Date(dateStr).getFullYear();
+}
+
+// JSON-LD structured data
+function websiteJsonLd() {
+  return [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: SITE.name,
+      alternateName: 'Divys Corner',
+      url: SITE.url + '/',
+      description: SITE.description,
+      inLanguage: 'en',
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Person',
+      name: SITE.author,
+      url: SITE.url + '/about',
+      sameAs: SITE.social,
+    },
+  ];
+}
+
+function postJsonLd(post) {
+  const url = `${SITE.url}/${post.slug}`;
+  return [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      headline: post.title,
+      description: post.excerpt,
+      datePublished: isoDateTime(post.date),
+      dateModified: isoDateTime(post.date),
+      author: { '@type': 'Person', name: SITE.author, url: SITE.url + '/about' },
+      publisher: { '@type': 'Person', name: SITE.author, url: SITE.url + '/about' },
+      mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+      url,
+      image: SITE.image,
+      keywords: (post.tags || []).join(', '),
+      inLanguage: 'en',
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Journal', item: SITE.url + '/' },
+        { '@type': 'ListItem', position: 2, name: post.title, item: url },
+      ],
+    },
+  ];
 }
 
 // Read and parse all posts
@@ -213,6 +348,64 @@ function getYears(posts) {
     .sort((a, b) => b.year - a.year);
 }
 
+// Generate sitemap.xml
+function buildSitemap(posts, tags, years) {
+  const newest = posts.length ? isoDate(posts[0].date) : null;
+  const entries = [];
+
+  const add = (loc, lastmod, changefreq, priority) => {
+    entries.push(
+      `  <url>\n    <loc>${loc}</loc>` +
+      (lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : '') +
+      (changefreq ? `\n    <changefreq>${changefreq}</changefreq>` : '') +
+      (priority ? `\n    <priority>${priority}</priority>` : '') +
+      `\n  </url>`
+    );
+  };
+
+  add(SITE.url + '/', newest, 'daily', '1.0');
+  add(SITE.url + '/about', null, 'monthly', '0.5');
+  for (const post of posts) add(`${SITE.url}/${post.slug}`, isoDate(post.date), 'yearly', '0.8');
+  for (const tag of tags) add(`${SITE.url}/tag-${tag.slug}`, newest, 'weekly', '0.4');
+  for (const year of years) add(`${SITE.url}/year-${year.year}`, newest, 'yearly', '0.4');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries.join('\n')}\n</urlset>\n`;
+}
+
+// Generate robots.txt
+function buildRobots() {
+  return `User-agent: *\nAllow: /\n\nSitemap: ${SITE.url}/sitemap.xml\n`;
+}
+
+// Generate RSS feed (feed.xml)
+function buildFeed(posts) {
+  const lastBuild = posts.length ? new Date(posts[0].date).toUTCString() : '';
+  const items = posts.map(p => {
+    const url = `${SITE.url}/${p.slug}`;
+    return `    <item>
+      <title>${esc(p.title)}</title>
+      <link>${url}</link>
+      <guid isPermaLink="true">${url}</guid>
+      <pubDate>${new Date(p.date).toUTCString()}</pubDate>
+      <description>${esc(p.excerpt)}</description>${(p.tags || []).map(t => `\n      <category>${esc(t)}</category>`).join('')}
+    </item>`;
+  }).join('\n');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>${esc(SITE.name)}</title>
+    <link>${SITE.url}/</link>
+    <atom:link href="${SITE.url}/feed.xml" rel="self" type="application/rss+xml"/>
+    <description>${esc(SITE.description)}</description>
+    <language>en</language>
+    <lastBuildDate>${lastBuild}</lastBuildDate>
+${items}
+  </channel>
+</rss>
+`;
+}
+
 // Build the site
 function build() {
   console.log('🏗️  Building Divy\'s...\n');
@@ -231,12 +424,23 @@ function build() {
   console.log(`✓ Found ${tags.length} tags, ${years.length} years`);
 
   // Generate index page
-  const indexHtml = baseTemplate(indexTemplate(posts, tags, years));
+  const indexHtml = baseTemplate(indexTemplate(posts, tags, years), {
+    title: SITE.title,
+    description: SITE.description,
+    pagePath: '',
+    type: 'website',
+    jsonLd: websiteJsonLd(),
+  });
   fs.writeFileSync(path.join(DIST_DIR, 'index.html'), indexHtml);
   console.log('✓ Generated index.html');
 
   // Generate about page
-  const aboutHtml = baseTemplate(aboutTemplate, "About | Divy's");
+  const aboutHtml = baseTemplate(aboutTemplate, {
+    title: "About — Divy's",
+    description: "About Divyanshu — programmer, occasional philosopher, and the writer behind Divy's.",
+    pagePath: 'about',
+    type: 'profile',
+  });
   fs.writeFileSync(path.join(DIST_DIR, 'about.html'), aboutHtml);
   console.log('✓ Generated about.html');
 
@@ -245,7 +449,12 @@ function build() {
     const tagPosts = posts.filter(p => p.tags && p.tags.includes(tag.name));
     const tagHtml = baseTemplate(
       indexTemplate(tagPosts, tags, years, `Tagged: ${tag.name}`, tag.slug, null),
-      `${tag.name} | Divy's`
+      {
+        title: `${tag.name} — ${SITE.name}`,
+        description: `Essays and notes tagged "${tag.name}" on ${SITE.name}.`,
+        pagePath: `tag-${tag.slug}`,
+        type: 'website',
+      }
     );
     fs.writeFileSync(path.join(DIST_DIR, `tag-${tag.slug}.html`), tagHtml);
     console.log(`✓ Generated tag-${tag.slug}.html`);
@@ -256,7 +465,12 @@ function build() {
     const yearPosts = posts.filter(p => getYear(p.date) === year.year);
     const yearHtml = baseTemplate(
       indexTemplate(yearPosts, tags, years, `${year.year}`, null, year.year),
-      `${year.year} | Divy's`
+      {
+        title: `${year.year} — ${SITE.name}`,
+        description: `Posts published in ${year.year} on ${SITE.name}.`,
+        pagePath: `year-${year.year}`,
+        type: 'website',
+      }
     );
     fs.writeFileSync(path.join(DIST_DIR, `year-${year.year}.html`), yearHtml);
     console.log(`✓ Generated year-${year.year}.html`);
@@ -264,10 +478,28 @@ function build() {
 
   // Generate individual post pages
   for (const post of posts) {
-    const postHtml = baseTemplate(postTemplate(post, tags, years), `${post.title} | Divy's`);
+    const postHtml = baseTemplate(postTemplate(post, tags, years), {
+      title: `${post.title} — ${SITE.name}`,
+      description: post.excerpt,
+      pagePath: post.slug,
+      type: 'article',
+      publishedTime: isoDateTime(post.date),
+      tags: post.tags,
+      jsonLd: postJsonLd(post),
+    });
     fs.writeFileSync(path.join(DIST_DIR, `${post.slug}.html`), postHtml);
     console.log(`✓ Generated ${post.slug}.html`);
   }
+
+  // Generate SEO files
+  fs.writeFileSync(path.join(DIST_DIR, 'sitemap.xml'), buildSitemap(posts, tags, years));
+  console.log('✓ Generated sitemap.xml');
+
+  fs.writeFileSync(path.join(DIST_DIR, 'robots.txt'), buildRobots());
+  console.log('✓ Generated robots.txt');
+
+  fs.writeFileSync(path.join(DIST_DIR, 'feed.xml'), buildFeed(posts));
+  console.log('✓ Generated feed.xml');
 
   console.log('\n✨ Build complete! Files are in ./dist');
 }

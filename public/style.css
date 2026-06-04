@@ -59,6 +59,11 @@ header::after {
   margin-bottom: 0.5rem;
 }
 
+.site-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
 .site-subtitle {
   display: none;
 }
