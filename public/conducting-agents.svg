@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="A conductor's baton sweeping across parallel scheduler threads">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f5f5f7"/>
+    </linearGradient>
+    <linearGradient id="baton" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0071e3" stop-opacity="0"/>
+      <stop offset="0.25" stop-color="#0071e3" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#0071e3"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#0071e3" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#0071e3" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <ellipse cx="820" cy="300" rx="520" ry="360" fill="url(#glow)"/>
+
+  <!-- thread lanes -->
+  <g stroke="#d2d2d7" stroke-width="2">
+    <line x1="120" y1="150" x2="1080" y2="150"/>
+    <line x1="120" y1="240" x2="1080" y2="240"/>
+    <line x1="120" y1="330" x2="1080" y2="330"/>
+    <line x1="120" y1="420" x2="1080" y2="420"/>
+    <line x1="120" y1="510" x2="1080" y2="510"/>
+  </g>
+
+  <!-- lane labels -->
+  <g font-family="-apple-system,'SF Pro Display',Helvetica,Arial,sans-serif" font-size="15" fill="#86868b" letter-spacing="0.4">
+    <text x="120" y="138">refactor</text>
+    <text x="120" y="228">tests</text>
+    <text x="120" y="318">bug</text>
+    <text x="120" y="408">docs</text>
+    <text x="120" y="498">deploy</text>
+  </g>
+
+  <!-- agent task blocks (priority-queue style) -->
+  <g>
+    <rect x="300" y="138" width="120" height="24" rx="6" fill="#1d1d1f"/>
+    <rect x="470" y="138" width="70"  height="24" rx="6" fill="#1d1d1f" opacity="0.35"/>
+
+    <rect x="360" y="228" width="90"  height="24" rx="6" fill="#1d1d1f"/>
+    <rect x="500" y="228" width="140" height="24" rx="6" fill="#1d1d1f" opacity="0.35"/>
+
+    <rect x="280" y="318" width="150" height="24" rx="6" fill="#0071e3"/>
+    <rect x="480" y="318" width="60"  height="24" rx="6" fill="#1d1d1f" opacity="0.35"/>
+
+    <rect x="330" y="408" width="80"  height="24" rx="6" fill="#1d1d1f"/>
+    <rect x="450" y="408" width="110" height="24" rx="6" fill="#1d1d1f" opacity="0.35"/>
+
+    <rect x="300" y="498" width="100" height="24" rx="6" fill="#1d1d1f"/>
+    <rect x="440" y="498" width="80"  height="24" rx="6" fill="#1d1d1f" opacity="0.35"/>
+  </g>
+
+  <!-- active "now" nodes -->
+  <g>
+    <circle cx="660" cy="150" r="9" fill="#0071e3"/>
+    <circle cx="700" cy="240" r="9" fill="#0071e3"/>
+    <circle cx="760" cy="330" r="9" fill="#0071e3"/>
+    <circle cx="690" cy="420" r="9" fill="#0071e3"/>
+    <circle cx="720" cy="510" r="9" fill="#0071e3"/>
+  </g>
+
+  <!-- conductor's baton sweep unifying the lanes -->
+  <path d="M 640 150 C 800 180, 760 300, 900 330 C 1010 354, 880 480, 980 510"
+        fill="none" stroke="url(#baton)" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="980" cy="510" r="7" fill="#0071e3"/>
+
+  <!-- title -->
+  <g font-family="-apple-system,'SF Pro Display',Helvetica,Arial,sans-serif">
+    <text x="120" y="585" font-size="30" font-weight="600" fill="#1d1d1f">Attention is all you need</text>
+    <text x="120" y="612" font-size="17" fill="#86868b">One mind, many agents — scheduling the work like an OS</text>
+  </g>
+</svg>

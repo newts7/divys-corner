@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:medium.com)",
+      "Bash(npm install:*)",
+      "Bash(npm run build)",
+      "WebSearch",
+      "Bash(vercel pull:*)",
+      "Bash(vercel git connect:*)",
+      "Bash(vercel deploy:*)",
+      "Bash(curl:*)"
+    ]
+  }
+}
