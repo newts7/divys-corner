@@ -1,11 +1,23 @@
 import fs from 'fs';
 import path from 'path';
+import { createRequire } from 'module';
 import { marked } from 'marked';
 import fm from 'front-matter';
+import { Resvg } from '@resvg/resvg-js';
 
 const POSTS_DIR = './posts';
 const DIST_DIR = './dist';
 const PUBLIC_DIR = './public';
+const OG_DIR = path.join(DIST_DIR, 'og');
+
+// Resolve bundled Inter font files (used to rasterise OG images deterministically,
+// independent of whatever fonts happen to exist on the build machine).
+const require = createRequire(import.meta.url);
+const FONT_FILES = [
+  require.resolve('@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf'),
+  require.resolve('@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf'),
+  require.resolve('@expo-google-fonts/inter/700Bold/Inter_700Bold.ttf'),
+];
 
 // Site-wide config (drives canonical URLs, sitemap, Open Graph, RSS, structured data)
 const SITE = {
@@ -17,7 +29,7 @@ const SITE = {
   author: 'Divyanshu',
   twitter: '@__newts',
   locale: 'en_US',
-  image: 'https://divys.blog/og-default.svg',
+  image: 'https://divys.blog/og-default.png',
   social: [
     'https://github.com/newts7',
     'https://www.linkedin.com/in/imnewts/',
@@ -48,6 +60,79 @@ function esc(str = '') {
     .replace(/'/g, '&#39;');
 }
 
+// ---- Open Graph image generation (1200x630 PNG, rendered from SVG via resvg) ----
+
+// Greedily wrap a title into lines of at most `maxChars`, capping at `maxLines`
+// (the final line gets an ellipsis if the title overflows).
+function wrapTitle(title, maxChars = 24, maxLines = 4) {
+  const words = String(title).split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (candidate.length > maxChars && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = candidate;
+    }
+  }
+  if (line) lines.push(line);
+
+  if (lines.length > maxLines) {
+    lines.length = maxLines;
+    lines[maxLines - 1] = lines[maxLines - 1].replace(/\s*\S*$/, '') + '…';
+  }
+  return lines;
+}
+
+// SVG for a per-post OG card: brand mark + wrapped title + footer.
+function ogPostSvg(title) {
+  const lines = wrapTitle(title);
+  const fontSize = 66;
+  const lineHeight = 84;
+  // Vertically centre the title block within the area below the brand row.
+  const blockHeight = lines.length * lineHeight;
+  let y = 300 + (300 - blockHeight) / 2;
+  const titleSvg = lines
+    .map((l) => {
+      const t = `<text x="72" y="${y}" fill="#ffffff" font-family="Inter" font-size="${fontSize}" font-weight="700">${esc(l)}</text>`;
+      y += lineHeight;
+      return t;
+    })
+    .join('\n  ');
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#1d1d1f"/>
+  <rect x="72" y="72" width="84" height="84" rx="20" fill="#ffffff"/>
+  <text x="114" y="132" text-anchor="middle" fill="#1d1d1f" font-family="Inter" font-size="52" font-weight="700">D</text>
+  <text x="172" y="130" fill="#ffffff" font-family="Inter" font-size="40" font-weight="700">Divy's</text>
+  ${titleSvg}
+  <text x="72" y="566" fill="#6e6e73" font-family="Inter" font-size="30" font-weight="500">divys.blog • Programming • Philosophy • Life</text>
+</svg>`;
+}
+
+// SVG for the default/site-wide OG card.
+function ogDefaultSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#1d1d1f"/>
+  <rect x="64" y="64" width="120" height="120" rx="28" fill="#ffffff"/>
+  <text x="124" y="152" text-anchor="middle" fill="#1d1d1f" font-family="Inter" font-size="74" font-weight="700">D</text>
+  <text x="64" y="340" fill="#ffffff" font-family="Inter" font-size="84" font-weight="700">Divy's</text>
+  <text x="64" y="412" fill="#a1a1a6" font-family="Inter" font-size="40" font-weight="400">Musings of a wandering mind</text>
+  <text x="64" y="566" fill="#6e6e73" font-family="Inter" font-size="32" font-weight="500">Programming • Philosophy • Life</text>
+</svg>`;
+}
+
+// Rasterise an SVG string to a 1200-wide PNG buffer using the bundled Inter fonts.
+function svgToPng(svg) {
+  const resvg = new Resvg(svg, {
+    font: { fontFiles: FONT_FILES, loadSystemFonts: false, defaultFontFamily: 'Inter' },
+    fitTo: { mode: 'width', value: 1200 },
+  });
+  return resvg.render().asPng();
+}
+
 // HTML Templates
 const baseTemplate = (content, meta = {}) => {
   const {
@@ -56,9 +141,13 @@ const baseTemplate = (content, meta = {}) => {
     pagePath = '',
     type = 'website',
     image = SITE.image,
+    imageAlt = `${SITE.name} — ${SITE.author}`,
+    socialTitle = title,
     publishedTime = null,
+    modifiedTime = null,
     tags = [],
     jsonLd = null,
+    robots = 'index, follow, max-image-preview:large, max-snippet:-1',
   } = meta;
 
   const canonical = SITE.url + (pagePath ? `/${pagePath}` : '/');
@@ -74,7 +163,7 @@ const baseTemplate = (content, meta = {}) => {
   <title>${esc(title)}</title>
   <meta name="description" content="${esc(description)}">
   <meta name="author" content="${esc(SITE.author)}">
-  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+  <meta name="robots" content="${robots}">
   <meta name="theme-color" content="#1d1d1f">
   <link rel="canonical" href="${canonical}">
   <link rel="alternate" type="application/rss+xml" title="${esc(SITE.name)} RSS Feed" href="${SITE.url}/feed.xml">
@@ -82,22 +171,28 @@ const baseTemplate = (content, meta = {}) => {
 
   <!-- Open Graph -->
   <meta property="og:type" content="${type}">
-  <meta property="og:title" content="${esc(title)}">
+  <meta property="og:title" content="${esc(socialTitle)}">
   <meta property="og:description" content="${esc(description)}">
   <meta property="og:url" content="${canonical}">
   <meta property="og:site_name" content="${esc(SITE.name)}">
   <meta property="og:image" content="${image}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="${esc(imageAlt)}">
   <meta property="og:locale" content="${SITE.locale}">${
     publishedTime ? `\n  <meta property="article:published_time" content="${publishedTime}">` : ''
-  }${type === 'article' ? `\n  <meta property="article:author" content="${esc(SITE.author)}">` : ''}${
+  }${modifiedTime ? `\n  <meta property="article:modified_time" content="${modifiedTime}">` : ''}${
+    type === 'article' ? `\n  <meta property="article:author" content="${esc(SITE.author)}">` : ''
+  }${
     tags.length ? '\n  ' + tags.map((t) => `<meta property="article:tag" content="${esc(t)}">`).join('\n  ') : ''
   }
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="${esc(title)}">
+  <meta name="twitter:title" content="${esc(socialTitle)}">
   <meta name="twitter:description" content="${esc(description)}">
   <meta name="twitter:image" content="${image}">
+  <meta name="twitter:image:alt" content="${esc(imageAlt)}">
   <meta name="twitter:creator" content="${esc(SITE.twitter)}">
 
   <link rel="stylesheet" href="/style.css">
@@ -295,6 +390,21 @@ ${headerTemplate}
   </article>
 </main>`;
 
+const notFoundTemplate = `
+${headerTemplate}
+<main class="about-content">
+  <article class="post">
+    <header>
+      <h1 class="post-title">Page not found</h1>
+      <p class="post-meta">Error 404</p>
+    </header>
+    <div class="post-content">
+      <p>The page you're looking for doesn't exist — it may have been moved or never existed at all.</p>
+      <p><a href="/">Head back to the Journal</a> and find something worth reading.</p>
+    </div>
+  </article>
+</main>`;
+
 // Helper functions
 function formatDate(dateStr) {
   const date = new Date(dateStr);
@@ -361,12 +471,12 @@ function postJsonLd(post) {
       headline: post.title,
       description: post.excerpt,
       datePublished: isoDateTime(post.date),
-      dateModified: isoDateTime(post.date),
+      dateModified: isoDateTime(post.updated),
       author: { '@type': 'Person', name: SITE.author, url: SITE.url + '/about' },
       publisher: { '@type': 'Person', name: SITE.author, url: SITE.url + '/about' },
       mainEntityOfPage: { '@type': 'WebPage', '@id': url },
       url,
-      image: SITE.image,
+      image: post.ogImage,
       keywords: (post.tags || []).join(', '),
       inLanguage: 'en',
     },
@@ -395,14 +505,19 @@ function getPosts() {
     const parsed = fm(content);
     const htmlContent = marked(parsed.body);
 
+    const slug = getSlug(file);
+    const date = parsed.attributes.date || new Date().toISOString();
     posts.push({
-      slug: getSlug(file),
-      title: parsed.attributes.title || getSlug(file),
-      date: parsed.attributes.date || new Date().toISOString(),
+      slug,
+      title: parsed.attributes.title || slug,
+      date,
+      // Optional `updated:` front-matter drives dateModified / article:modified_time.
+      updated: parsed.attributes.updated || date,
       excerpt: parsed.attributes.excerpt || getExcerpt(htmlContent),
       content: htmlContent,
       draft: parsed.attributes.draft || false,
-      tags: parsed.attributes.tags || []
+      tags: parsed.attributes.tags || [],
+      ogImage: `${SITE.url}/og/${slug}.png`,
     });
   }
 
@@ -535,6 +650,17 @@ function build() {
   fs.writeFileSync(path.join(DIST_DIR, 'about.html'), aboutHtml);
   console.log('✓ Generated about.html');
 
+  // Generate 404 page (noindex — error pages shouldn't be in the index)
+  const notFoundHtml = baseTemplate(notFoundTemplate, {
+    title: "Page not found — Divy's",
+    description: "The page you're looking for doesn't exist.",
+    pagePath: '404',
+    type: 'website',
+    robots: 'noindex, follow',
+  });
+  fs.writeFileSync(path.join(DIST_DIR, '404.html'), notFoundHtml);
+  console.log('✓ Generated 404.html');
+
   // Generate tag pages
   for (const tag of tags) {
     const tagPosts = posts.filter(p => p.tags && p.tags.includes(tag.name));
@@ -567,14 +693,26 @@ function build() {
     console.log(`✓ Generated year-${year.year}.html`);
   }
 
+  // Generate per-post OG images
+  if (!fs.existsSync(OG_DIR)) fs.mkdirSync(OG_DIR, { recursive: true });
+  fs.writeFileSync(path.join(DIST_DIR, 'og-default.png'), svgToPng(ogDefaultSvg()));
+  for (const post of posts) {
+    fs.writeFileSync(path.join(OG_DIR, `${post.slug}.png`), svgToPng(ogPostSvg(post.title)));
+  }
+  console.log(`✓ Generated ${posts.length + 1} OG images`);
+
   // Generate individual post pages
   for (const post of posts) {
     const postHtml = baseTemplate(postTemplate(post, tags, years), {
       title: `${post.title} — ${SITE.name}`,
+      socialTitle: post.title,
       description: post.excerpt,
       pagePath: post.slug,
       type: 'article',
+      image: post.ogImage,
+      imageAlt: `${post.title} — ${SITE.name}`,
       publishedTime: isoDateTime(post.date),
+      modifiedTime: post.updated !== post.date ? isoDateTime(post.updated) : null,
       tags: post.tags,
       jsonLd: postJsonLd(post),
     });

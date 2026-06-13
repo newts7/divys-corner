@@ -9,8 +9,10 @@
     "watch": "node --watch build.js"
   },
   "dependencies": {
-    "marked": "^15.0.0",
-    "front-matter": "^4.0.2"
+    "@expo-google-fonts/inter": "^0.4.2",
+    "@resvg/resvg-js": "^2.6.2",
+    "front-matter": "^4.0.2",
+    "marked": "^15.0.0"
   },
   "devDependencies": {
     "serve": "^14.2.0"
