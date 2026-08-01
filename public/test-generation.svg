@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="From Adelaide 2014 through 36 all out to winning at the Gabba">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f5f5f7"/>
+    </linearGradient>
+    <radialGradient id="glow3" cx="0.5" cy="0.18" r="0.62">
+      <stop offset="0" stop-color="#0071e3" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#0071e3" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg3)"/>
+  <ellipse cx="600" cy="110" rx="520" ry="300" fill="url(#glow3)"/>
+
+  <!-- the arc: 2014 handover -> the floor -> the win -->
+  <path d="M 152 296 C 262 344, 392 428, 528 434 C 704 442, 878 306, 1046 176"
+        fill="none" stroke="#0071e3" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- start marker -->
+  <circle cx="152" cy="296" r="11" fill="#1d1d1f"/>
+  <!-- low point marker -->
+  <circle cx="528" cy="434" r="11" fill="#1d1d1f"/>
+  <!-- high point marker -->
+  <circle cx="1046" cy="176" r="14" fill="#0071e3"/>
+
+  <g font-family="-apple-system,'SF Pro Display',Helvetica,Arial,sans-serif">
+    <!-- 2014 -->
+    <text x="128" y="228" font-size="30" font-weight="700" fill="#1d1d1f">2014</text>
+    <text x="128" y="258" font-size="17" fill="#86868b">Adelaide — the keys change hands</text>
+
+    <!-- 36 all out -->
+    <text x="528" y="492" font-size="30" font-weight="700" fill="#1d1d1f" text-anchor="middle">36 all out</text>
+    <text x="528" y="520" font-size="17" fill="#86868b" text-anchor="middle">Adelaide, Dec 2020</text>
+
+    <!-- Gabba -->
+    <text x="1058" y="108" font-size="30" font-weight="700" fill="#0071e3" text-anchor="end">The Gabba</text>
+    <text x="1058" y="136" font-size="17" fill="#86868b" text-anchor="end">Brisbane, Jan 2021</text>
+  </g>
+
+  <!-- the names -->
+  <g font-family="-apple-system,'SF Pro Display',Helvetica,Arial,sans-serif" text-anchor="middle">
+    <rect x="180" y="552" width="840" height="1" fill="#d2d2d7"/>
+    <text x="600" y="590" font-size="22" font-weight="600" fill="#1d1d1f">Kohli · Rohit · Rahane · Pujara · Ashwin · Jadeja</text>
+    <text x="600" y="616" font-size="16" fill="#86868b">The generation that made us believe before a ball was bowled</text>
+  </g>
+</svg>
