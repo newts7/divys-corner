@@ -6,9 +6,10 @@ import fm from 'front-matter';
 import { Resvg } from '@resvg/resvg-js';
 
 const POSTS_DIR = './posts';
-// Theme + output dir are overridable so several designs can be built side by side:
-//   THEME=press DIST_DIR=./dist-press node build.js
-const THEME = process.env.THEME || null;
+// The site's design lives in themes/press (editorial/print). THEME is still an
+// env var so a future candidate design can be built side by side without
+// touching this file; with nothing set the site builds as Press.
+const THEME = process.env.THEME || 'press';
 const DIST_DIR = process.env.DIST_DIR || './dist';
 const THEME_DIR = THEME ? path.join('./themes', THEME) : null;
 const PUBLIC_DIR = './public';

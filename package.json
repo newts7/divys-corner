@@ -6,12 +6,7 @@
   "scripts": {
     "build": "node build.js",
     "dev": "node build.js && npx serve dist",
-    "watch": "node --watch build.js",
-    "build:press": "THEME=press DIST_DIR=./dist-press node build.js",
-    "build:terminal": "THEME=terminal DIST_DIR=./dist-terminal node build.js",
-    "build:atelier": "THEME=atelier DIST_DIR=./dist-atelier node build.js",
-    "build:all": "npm run build && npm run build:press && npm run build:terminal && npm run build:atelier",
-    "preview": "npm run build:all && node preview.js"
+    "watch": "node --watch build.js"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
