@@ -238,10 +238,11 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
   list-style: none;
   margin: 0;
   padding: 0;
-  columns: 2;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   column-gap: 48px;
 }
-.sheet-article .entries { columns: 1; }
+.sheet-article .entries { grid-template-columns: minmax(0, 1fr); }
 
 .entry {
   break-inside: avoid;
@@ -622,7 +623,7 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 @media (max-width: 900px) {
   .sheet { grid-template-columns: minmax(0, 1fr); gap: 44px; }
-  .entries { columns: 1; }
+  .entries { grid-template-columns: minmax(0, 1fr); }
   .rail {
     position: static;
     border-left: none;
