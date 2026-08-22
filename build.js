@@ -6,7 +6,11 @@ import fm from 'front-matter';
 import { Resvg } from '@resvg/resvg-js';
 
 const POSTS_DIR = './posts';
-const DIST_DIR = './dist';
+// Theme + output dir are overridable so several designs can be built side by side:
+//   THEME=press DIST_DIR=./dist-press node build.js
+const THEME = process.env.THEME || null;
+const DIST_DIR = process.env.DIST_DIR || './dist';
+const THEME_DIR = THEME ? path.join('./themes', THEME) : null;
 const PUBLIC_DIR = './public';
 const OG_DIR = path.join(DIST_DIR, 'og');
 
@@ -47,6 +51,14 @@ function copyPublicFiles() {
   const files = fs.readdirSync(PUBLIC_DIR);
   for (const file of files) {
     fs.copyFileSync(path.join(PUBLIC_DIR, file), path.join(DIST_DIR, file));
+  }
+  // Theme assets (style.css, theme.js, ...) win over the defaults in public/
+  if (THEME_DIR && fs.existsSync(THEME_DIR)) {
+    for (const file of fs.readdirSync(THEME_DIR)) {
+      if (file === 'theme.js') continue; // build-time module, not a static asset
+      const from = path.join(THEME_DIR, file);
+      if (fs.statSync(from).isFile()) fs.copyFileSync(from, path.join(DIST_DIR, file));
+    }
   }
 }
 
@@ -134,6 +146,20 @@ function svgToPng(svg) {
 }
 
 // HTML Templates
+// Presentation hooks a theme may override (see themes/<name>/theme.js)
+let theme = {
+  bodyClass: '',
+  head: '',
+  bodyEnd: '',
+  shell: (content) => `<div class="container">
+    ${content}
+    <footer>
+      <p class="footer-text">Written with love & curiosity</p>
+      <p class="footer-quote">"A tiny dot in the cosmos, programming when not doing philosophy"</p>
+    </footer>
+  </div>`,
+};
+
 const baseTemplate = (content, meta = {}) => {
   const {
     title = SITE.title,
@@ -195,17 +221,11 @@ const baseTemplate = (content, meta = {}) => {
   <meta name="twitter:image:alt" content="${esc(imageAlt)}">
   <meta name="twitter:creator" content="${esc(SITE.twitter)}">
 
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/style.css">${theme.head}
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%231d1d1f' rx='22' width='100' height='100'/><text x='50' y='68' text-anchor='middle' fill='%23ffffff' font-family='-apple-system,SF Pro Display,sans-serif' font-size='58' font-weight='600'>D</text></svg>">${jsonLdBlock}
 </head>
-<body>
-  <div class="container">
-    ${content}
-    <footer>
-      <p class="footer-text">Written with love & curiosity</p>
-      <p class="footer-quote">"A tiny dot in the cosmos, programming when not doing philosophy"</p>
-    </footer>
-  </div>
+<body${theme.bodyClass ? ` class="${theme.bodyClass}"` : ''}>
+  ${theme.shell(content)}${theme.bodyEnd}
 </body>
 </html>`;
 };
@@ -338,7 +358,7 @@ const shareScript = `
 })();
 </script>`;
 
-const postTemplate = (post, tags, years) => `
+let postTemplate = (post, tags, years) => `
 <a href="/" class="back-link">Back to Journal</a>
 <div class="content-wrapper">
   <article class="post">
@@ -355,7 +375,7 @@ const postTemplate = (post, tags, years) => `
 </div>
 ${shareScript}`;
 
-const indexTemplate = (posts, tags, years, title = null, activeTag = null, activeYear = null) => `
+let indexTemplate = (posts, tags, years, title = null, activeTag = null, activeYear = null) => `
 ${headerTemplate}
 ${title ? `<h2 class="archive-title">${title}</h2>` : ''}
 <div class="content-wrapper">
@@ -367,7 +387,7 @@ ${title ? `<h2 class="archive-title">${title}</h2>` : ''}
   ${sidebarTemplate(tags, years, activeTag, activeYear)}
 </div>`;
 
-const aboutTemplate = `
+let aboutTemplate = `
 ${headerTemplate}
 <main class="about-content">
   <article class="post">
@@ -390,7 +410,7 @@ ${headerTemplate}
   </article>
 </main>`;
 
-const notFoundTemplate = `
+let notFoundTemplate = `
 ${headerTemplate}
 <main class="about-content">
   <article class="post">
@@ -733,4 +753,22 @@ function build() {
   console.log('\n✨ Build complete! Files are in ./dist');
 }
 
+async function loadTheme() {
+  if (!THEME) return;
+  const modPath = path.resolve(THEME_DIR, 'theme.js');
+  if (!fs.existsSync(modPath)) throw new Error(`Unknown theme "${THEME}" (no ${modPath})`);
+  const mod = await import(`file://${modPath}`);
+  const t = mod.createTheme({
+    SITE, esc, formatDate, isoDate, slugify, getYear,
+    shareTemplate, shareScript,
+  });
+  theme = { ...theme, ...t };
+  if (t.indexTemplate) indexTemplate = t.indexTemplate;
+  if (t.postTemplate) postTemplate = t.postTemplate;
+  if (t.aboutTemplate) aboutTemplate = t.aboutTemplate;
+  if (t.notFoundTemplate) notFoundTemplate = t.notFoundTemplate;
+  console.log(`🎨 Theme: ${THEME}`);
+}
+
+await loadTheme();
 build();
