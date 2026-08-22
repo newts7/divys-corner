@@ -442,6 +442,7 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .post-content code {
   font-family: var(--mono);
   font-size: 0.84em;
+  color: var(--accent);
   background: var(--paper-deep);
   border: 1px solid var(--rule);
   border-radius: 3px;
@@ -502,6 +503,24 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 }
 
 .post-content strong { font-weight: 600; }
+
+.post-content .wide {
+  width: min(46rem, 88vw);
+  max-width: none;
+  margin: 2.4em 0;
+}
+.post-content .wide img { width: 100%; margin: 0; }
+.post-content .wide figcaption {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 0.9em;
+}
+@media (max-width: 900px) {
+  .post-content .wide { width: 100%; }
+}
 
 .post-end {
   max-width: var(--measure);
