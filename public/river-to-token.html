@@ -5,6 +5,23 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>From river to token — Divy&rsquo;s</title>
 <meta name="description" content="An interactive plate: how water, electricity and fibre become the next token of an answer.">
+<link rel="canonical" href="https://divys.blog/river-to-token">
+<meta property="og:type" content="article">
+<meta property="og:title" content="From river to token">
+<meta property="og:description" content="An interactive plate: how water, electricity and fibre become the next token of an answer.">
+<meta property="og:url" content="https://divys.blog/river-to-token">
+<meta property="og:site_name" content="Divy&#39;s">
+<meta property="og:image" content="https://divys.blog/og/river-to-token.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="From river to token &mdash; Divy&#39;s">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="From river to token">
+<meta name="twitter:description" content="An interactive plate: how water, electricity and fibre become the next token of an answer.">
+<meta name="twitter:image" content="https://divys.blog/og/river-to-token.png">
+<meta name="twitter:image:alt" content="From river to token &mdash; Divy&#39;s">
+<meta name="twitter:creator" content="@__newts">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..700&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -430,13 +447,13 @@ body(rtr,340,286,96,44,{rx:2});
 for(let i=0;i<4;i++) led(rtr,356+i*14,308,C.data,i*.3,true);
 [0,1].forEach(i=>line(rtr,360+i*46,286,352+i*54,254,{stroke:C.soft,'stroke-width':1.4}));
 [1,2,3].forEach(r=>path(rtr,`M388,${250-r*0} m0,0 a${r*13},${r*13} 0 0 1 ${r*11},${r*9}`,{fill:'none',stroke:C.data,'stroke-width':1,'stroke-opacity':.45}));
-cap(rtr,388,430,'Home router','ISP hand-off, first hop',180);
+cap(rtr,388,430,'Home router','ISP hand-off, first hop',150);
 
 const ix=hot(g(s),'fiber');
 body(ix,520,264,150,88,{rx:2});
 shade(ix,520,264,150,14);
 for(let r=0;r<3;r++) for(let i=0;i<9;i++) led(ix,534+i*14,294+r*18,C.data,((i*3+r*5)%11)/7,true);
-cap(ix,595,430,'Exchange & backbone','5–15 router hops, light at 200,000 km/s',300);
+cap(ix,598,430,'Exchange & backbone','5–15 router hops, light at 200,000 km/s',256);
 
 /* long-haul fibre leaving the plate */
 path(b,'M266,304 H340 M436,304 H520 M670,304 H1500',{stroke:C.data,'stroke-width':1,'stroke-opacity':.4,'stroke-dasharray':'5 4'});
@@ -480,7 +497,7 @@ cap(sol,830,952,'Solar farm','cheap at noon, nothing at midnight',240);
 
 const bat=hot(g(s),'battery');
 [0,1].forEach(i=>{ body(bat,1000,790+i*56,120,48,{rx:2}); for(let k=0;k<5;k++) line(bat,1012+k*22,796+i*56,1012+k*22,832+i*56,{stroke:C.power,'stroke-width':1.4,'stroke-opacity':.6}); });
-cap(bat,1060,952,'Battery storage','shifts the midday surplus into the evening',250);
+cap(bat,1060,952,'Battery storage','midday sun, kept for the evening',180);
 
 /* collection bus */
 line(b,90,884,1160,884,{stroke:C.power,'stroke-width':2,'stroke-opacity':.5});
@@ -491,7 +508,7 @@ body(su,1180,800,80,100);
 circ(su,1204,856,15,{fill:'none',stroke:C.power,'stroke-width':1.6}); circ(su,1226,856,15,{fill:'none',stroke:C.power,'stroke-width':1.6});
 for(let i=0;i<3;i++) line(su,1194+i*22,800,1194+i*22,786,{stroke:C.power,'stroke-width':1.4});
 txt(su,1220,780,'20 kV → 230 kV',{class:'lbl-xs','text-anchor':'middle'});
-cap(su,1220,952,'Step-up','loss falls 100× for 10× the voltage',190);
+cap(su,1220,952,'Step-up','ten times the volts',110);
 
 const tw=hot(g(s),'towers');
 function tower(x){
@@ -505,7 +522,7 @@ tower(1320); tower(1400);
 path(tw,'M1260,830 Q1290,700 1320,656 Q1360,690 1400,656 L1460,690',{fill:'none',stroke:C.power,'stroke-width':1.2,'stroke-opacity':.55});
 conduit('A','M1258,838 Q1290,706 1318,662 Q1360,696 1398,662 L1470,700',C.power,{w:0,n:5,dur:5,r:3});
 txt(s,1360,600,'230–500 kV',{class:'lbl-xs','text-anchor':'middle'});
-cap(tw,1360,952,'Transmission','hundreds of km; the slowest thing to permit',230);
+cap(tw,1360,952,'Transmission','the slowest thing to permit',160);
 
 /* ------------------------------------------------------- 1·3 the water */
 band(s,60,1010,'1·3','Where the cooling water comes from');
@@ -1505,9 +1522,11 @@ $('capStop').onclick=stopTrace;
    Boot
    ====================================================================== */
 if(REDUCED) document.documentElement.classList.add('rm');
-fitFrame('all',0);
-setTimeout(()=>fitFrame('all',0),60);
-document.querySelector('#rail button').classList.add('on');
+/* on a narrow screen the whole plate fits to a matchbox — open on figure I instead */
+const BOOT=wide()?'all':'A';
+fitFrame(BOOT,0);
+setTimeout(()=>fitFrame(BOOT,0),60);
+document.querySelector('#rail button[data-stage="'+BOOT+'"]').classList.add('on');
 startRun($('pin').value);
 </script>
 </body>

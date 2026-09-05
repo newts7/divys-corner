@@ -537,6 +537,9 @@ function getPosts() {
       excerpt: parsed.attributes.excerpt || getExcerpt(htmlContent),
       content: htmlContent,
       draft: parsed.attributes.draft || false,
+      // `standalone: true` means the page is a hand-written file in public/.
+      // It is listed and syndicated like any other piece, but not templated.
+      standalone: parsed.attributes.standalone || false,
       tags: parsed.attributes.tags || [],
       ogImage: `${SITE.url}/og/${slug}.png`,
     });
@@ -724,6 +727,10 @@ function build() {
 
   // Generate individual post pages
   for (const post of posts) {
+    if (post.standalone) {
+      console.log(`- Skipped ${post.slug}.html (standalone page from public/)`);
+      continue;
+    }
     const postHtml = baseTemplate(postTemplate(post, tags, years), {
       title: `${post.title} — ${SITE.name}`,
       socialTitle: post.title,
