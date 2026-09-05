@@ -37,6 +37,12 @@ export function createTheme(ctx) {
       ${tags.map(t => `<li><a href="/tag-${t.slug}" class="${activeTag === t.slug ? 'active' : ''}"><span>${t.name}</span><em>${t.count}</em></a></li>`).join('')}
     </ul>
   </section>
+  <section class="rail-section">
+    <h3 class="rail-title">Plates</h3>
+    <ul class="rail-list">
+      <li><a href="/river-to-token"><span>From river to token</span><em>I&ndash;V</em></a></li>
+    </ul>
+  </section>
   <section class="rail-section rail-colophon">
     <h3 class="rail-title">Colophon</h3>
     <p>Set in Fraunces &amp; Newsreader. Written by hand, published as static files.</p>

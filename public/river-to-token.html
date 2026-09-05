@@ -1,0 +1,1514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>From river to token — Divy&rsquo;s</title>
+<meta name="description" content="An interactive plate: how water, electricity and fibre become the next token of an answer.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..700&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#fbf8f1; --paper-deep:#f4efe4; --paper-sink:#ece5d6;
+  --ink:#17140f; --ink-soft:#3d372e; --muted:#7a7264;
+  --rule:#ded5c4; --rule-mid:#c8bda6; --rule-strong:#2a251d;
+  --accent:#9a3016; --highlight:#f6e7c9;
+
+  --c-water:#2d6a8e; --c-heat:#c2622f; --c-power:#9c7a14; --c-data:#5b4b8a; --c-token:#3d6b4a;
+  --t-water:rgba(45,106,142,.09); --t-heat:rgba(194,98,47,.09); --t-data:rgba(91,75,138,.09); --t-token:rgba(61,107,74,.09);
+  --hatch:rgba(23,20,15,.30); --glass:rgba(251,248,241,.94);
+
+  --serif-display:"Fraunces","Iowan Old Style",Georgia,serif;
+  --serif-body:"Newsreader","Iowan Old Style",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#14120e; --paper-deep:#1b1813; --paper-sink:#23201a;
+    --ink:#f0eade; --ink-soft:#d6cdbd; --muted:#9c9385;
+    --rule:#342e25; --rule-mid:#4a4234; --rule-strong:#efe8da;
+    --accent:#e8825f; --highlight:#3a2f1c;
+    --c-water:#6fb8dc; --c-heat:#e08a58; --c-power:#d5b356; --c-data:#a99ae0; --c-token:#7fbf8e;
+    --t-water:rgba(111,184,220,.07); --t-heat:rgba(224,138,88,.07); --t-data:rgba(169,154,224,.09); --t-token:rgba(127,191,142,.09);
+    --hatch:rgba(240,234,222,.26); --glass:rgba(20,18,14,.94);
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--paper);color:var(--ink);
+  font-family:var(--serif-body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+
+/* ---------------------------------------------------------------- canvas */
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+#scene.dragging{cursor:grabbing}
+#scene text{user-select:none;pointer-events:none}
+.fig-num{font-family:var(--serif-display);font-size:64px;font-weight:300;fill:var(--rule-mid);font-variation-settings:"SOFT" 0,"WONK" 1}
+.fig-ttl{font-family:var(--serif-display);font-size:38px;font-weight:600;fill:var(--ink);letter-spacing:-.02em;font-variation-settings:"SOFT" 0,"WONK" 1}
+.fig-sub{font-family:var(--serif-body);font-size:19px;font-style:italic;fill:var(--muted)}
+.fig-kick{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.24em;fill:var(--muted)}
+.lbl{font-family:var(--mono);font-size:13px;font-weight:500;letter-spacing:.1em;fill:var(--ink)}
+.lbl-s{font-family:var(--mono);font-size:11px;font-weight:400;letter-spacing:.08em;fill:var(--muted)}
+.lbl-xs{font-family:var(--mono);font-size:9.5px;font-weight:400;letter-spacing:.06em;fill:var(--muted)}
+.note{font-family:var(--serif-body);font-size:14px;font-style:italic;fill:var(--muted)}
+.note-s{font-family:var(--serif-body);font-size:12px;font-style:italic;fill:var(--muted)}
+.hot{cursor:pointer}
+.hot:hover .hit{fill:var(--highlight);fill-opacity:.5}
+
+.led{animation:blink 1.8s ease-in-out infinite}
+.led.fast{animation-duration:.8s}
+@keyframes blink{0%,100%{opacity:.9}50%{opacity:.1}}
+.shimmer{animation:shimmer 3.4s linear infinite}
+@keyframes shimmer{0%{opacity:.2}50%{opacity:.95}100%{opacity:.2}}
+.cell{animation:cell 2.6s ease-in-out infinite}
+@keyframes cell{0%,100%{opacity:.12}50%{opacity:.8}}
+.bar{transform-box:fill-box;transform-origin:bottom;transition:transform .55s cubic-bezier(.2,.8,.2,1)}
+.barw{transform-box:fill-box;transform-origin:left;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+#hilite{animation:march 1.4s linear infinite}
+@keyframes march{to{stroke-dashoffset:-32}}
+.rm *{animation:none!important;transition:none!important}
+
+/* ---------------------------------------------------------------- chrome */
+.rule-top{position:fixed;left:0;right:0;top:0;height:4px;background:var(--rule-strong);z-index:8}
+header{position:fixed;top:4px;left:0;right:0;height:58px;padding:0 22px;display:flex;align-items:center;gap:22px;
+  background:var(--glass);border-bottom:1px solid var(--rule);z-index:8;backdrop-filter:blur(3px)}
+.brand{display:flex;align-items:baseline;gap:14px;min-width:0}
+.brand a{font-family:var(--serif-display);font-weight:600;font-size:22px;letter-spacing:-.03em;color:var(--ink);text-decoration:none;
+  font-variation-settings:"SOFT" 0,"WONK" 1;white-space:nowrap}
+.brand a:hover{color:var(--accent)}
+.brand .kick{font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.tools{margin-left:auto;display:flex;align-items:center;gap:6px}
+.mono-btn{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-soft);background:none;border:1px solid var(--rule);padding:7px 11px;cursor:pointer;line-height:1}
+.mono-btn:hover{border-color:var(--rule-strong);color:var(--accent)}
+.mono-btn:disabled{opacity:.35;cursor:default}
+.mono-btn:disabled:hover{border-color:var(--rule);color:var(--ink-soft)}
+.mono-btn[aria-pressed="true"]{border-color:var(--rule-strong);color:var(--accent)}
+.mono-btn:focus-visible,#promptbar input:focus-visible{outline:1px solid var(--accent);outline-offset:2px}
+.zoomlvl{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--muted);min-width:46px;text-align:right}
+.divider{width:1px;height:20px;background:var(--rule);margin:0 4px}
+
+/* -------------------------------------------------------- figure index */
+#rail{position:fixed;left:0;top:62px;bottom:0;width:212px;padding:26px 20px 0;border-right:1px solid var(--rule);
+  background:var(--glass);z-index:7;backdrop-filter:blur(3px)}
+#rail h2{font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 14px;padding-bottom:10px;border-bottom:1px solid var(--rule)}
+#rail button{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--rule);
+  padding:11px 0 10px;cursor:pointer;color:var(--ink-soft);font:inherit}
+#rail button:last-of-type{border-bottom:0}
+#rail .n{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--muted);display:block;margin-bottom:3px}
+#rail .t{font-family:var(--serif-display);font-size:17px;font-weight:500;letter-spacing:-.01em;display:block;line-height:1.2}
+#rail button:hover .t,#rail button.on .t{color:var(--accent)}
+#rail button.on .n{color:var(--accent)}
+#rail .foot{position:absolute;left:20px;right:20px;bottom:18px;font-family:var(--mono);font-size:9px;line-height:1.7;
+  letter-spacing:.08em;color:var(--muted);border-top:1px solid var(--rule);padding-top:10px}
+#rail .foot b{font-weight:500;color:var(--ink-soft)}
+
+/* ------------------------------------------------------------ info card */
+#info{position:fixed;right:22px;top:82px;width:322px;max-height:calc(100vh - 250px);overflow:auto;z-index:9;
+  background:var(--paper);border:1px solid var(--rule-mid);border-top:3px solid var(--rule-strong);padding:16px 18px 16px}
+#info[hidden]{display:none}
+#info .tag{font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;display:flex;align-items:center;gap:7px;color:var(--muted)}
+#info .tag i{width:9px;height:9px;display:inline-block}
+#info h3{font-family:var(--serif-display);font-size:22px;font-weight:600;letter-spacing:-.02em;margin:8px 0 2px;line-height:1.15;
+  font-variation-settings:"SOFT" 0,"WONK" 1}
+#info .role{font-family:var(--serif-body);font-style:italic;font-size:15px;color:var(--accent);margin:0 0 10px}
+#info .desc{font-size:15px;line-height:1.6;color:var(--ink-soft);margin:0 0 12px}
+#info ul{list-style:none;margin:0;padding:10px 0 0;border-top:1px solid var(--rule)}
+#info li{font-family:var(--mono);font-size:10.5px;line-height:1.7;letter-spacing:.02em;color:var(--muted);padding-left:14px;position:relative;margin-bottom:5px}
+#info li::before{content:"—";position:absolute;left:0;color:var(--rule-mid)}
+#info .close{position:absolute;right:10px;top:8px;background:none;border:0;color:var(--muted);font-family:var(--mono);font-size:15px;cursor:pointer;line-height:1;padding:4px}
+#info .close:hover{color:var(--accent)}
+#info .pin{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);margin:10px 0 0;text-transform:uppercase}
+
+/* -------------------------------------------------------------- caption */
+#caption{position:fixed;left:50%;transform:translateX(-50%);bottom:96px;width:min(700px,calc(100vw - 280px));z-index:9;
+  background:var(--paper);border:1px solid var(--rule-mid);border-top:3px solid var(--rule-strong);padding:14px 18px 12px}
+#caption[hidden]{display:none}
+#caption .step{font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+#caption p{margin:0 0 12px;font-size:16px;line-height:1.55;color:var(--ink-soft)}
+#caption .btns{display:flex;align-items:center;gap:6px;border-top:1px solid var(--rule);padding-top:10px}
+#caption .dots{margin-left:auto;display:flex;gap:5px;align-items:center}
+#caption .dots i{width:14px;height:2px;background:var(--rule-mid);display:block}
+#caption .dots i.on{background:var(--accent)}
+
+/* ----------------------------------------------------------- prompt bar */
+#promptbar{position:fixed;left:212px;right:0;bottom:0;height:76px;padding:0 22px;display:flex;align-items:center;gap:16px;
+  background:var(--glass);border-top:1px solid var(--rule);z-index:8;backdrop-filter:blur(3px)}
+#promptbar .lab{font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+#promptbar .field{flex:1;display:flex;align-items:baseline;gap:10px;border-bottom:1px solid var(--rule-mid);padding-bottom:5px;min-width:0}
+#promptbar .quote{font-family:var(--serif-display);font-size:24px;color:var(--rule-mid);line-height:0;position:relative;top:6px}
+#promptbar input{flex:1;min-width:0;background:none;border:0;color:var(--ink);font-family:var(--serif-body);font-size:20px;font-style:italic;padding:0}
+#promptbar input::placeholder{color:var(--rule-mid)}
+#promptbar .out{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);white-space:nowrap;text-align:right;line-height:1.6}
+#promptbar .out b{color:var(--c-token);font-weight:500}
+#promptbar .btn-run{border-color:var(--rule-strong);color:var(--accent)}
+
+/* --------------------------------------------------------------- legend */
+#legend{position:fixed;left:234px;bottom:88px;z-index:7;display:flex;gap:16px;flex-wrap:wrap;align-items:center;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+  background:var(--glass);border:1px solid var(--rule);padding:7px 12px}
+#legend span{display:flex;align-items:center;gap:6px}
+#legend i{width:12px;height:3px;display:block}
+#hint{position:fixed;right:22px;bottom:88px;z-index:7;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+  color:var(--muted);background:var(--glass);border:1px solid var(--rule);padding:7px 12px;text-transform:uppercase}
+
+@media (max-width:1080px){
+  #info{width:280px}
+  #caption{width:min(620px,calc(100vw - 260px))}
+}
+@media (max-width:860px){
+  header{gap:12px;padding:0 12px}
+  .brand .kick{display:none}
+  #rail{left:0;right:0;top:auto;bottom:76px;width:auto;height:auto;padding:0;display:flex;overflow-x:auto;
+    border-right:0;border-top:1px solid var(--rule)}
+  #rail h2,#rail .foot{display:none}
+  #rail button{border-bottom:0;border-right:1px solid var(--rule);padding:8px 14px;white-space:nowrap;width:auto}
+  #rail .t{font-size:14px}
+  #promptbar{left:0}
+  #legend,#hint{display:none}
+  #info{left:12px;right:12px;width:auto;top:auto;bottom:140px;max-height:38vh}
+  #caption{bottom:140px;width:calc(100vw - 24px)}
+}
+</style>
+</head>
+<body>
+
+<div class="rule-top"></div>
+<header>
+  <div class="brand">
+    <a href="/">Divy&rsquo;s</a>
+    <span class="kick">Plates &middot; From river to token</span>
+  </div>
+  <div class="tools">
+    <button class="mono-btn btn-run" id="trace">Guided trace</button>
+    <span class="divider"></span>
+    <span class="zoomlvl" id="zoomlvl">100%</span>
+    <button class="mono-btn" id="zout" aria-label="Zoom out">&minus;</button>
+    <button class="mono-btn" id="zin" aria-label="Zoom in">+</button>
+    <button class="mono-btn" id="zfit">Fit</button>
+  </div>
+</header>
+
+<nav id="rail" aria-label="Figures">
+  <h2>The plates</h2>
+  <button data-stage="all"><span class="n">&mdash;</span><span class="t">Whole plate</span></button>
+  <button data-stage="A"><span class="n">Fig. I</span><span class="t">Sources</span></button>
+  <button data-stage="B"><span class="n">Fig. II</span><span class="t">The building</span></button>
+  <button data-stage="C"><span class="n">Fig. III</span><span class="t">Rack B&middot;14</span></button>
+  <button data-stage="D"><span class="n">Fig. IV</span><span class="t">The server</span></button>
+  <button data-stage="E"><span class="n">Fig. V</span><span class="t">Inside the model</span></button>
+  <div class="foot">
+    Scroll &middot; zoom<br>
+    Drag &middot; pan<br>
+    Hover &middot; <b>what it does</b><br>
+    Click &middot; pin the note
+  </div>
+</nav>
+
+<aside id="info" hidden>
+  <button class="close" aria-label="Close">&times;</button>
+  <div class="tag"><i></i><span></span></div>
+  <h3></h3>
+  <p class="role"></p>
+  <p class="desc"></p>
+  <ul class="facts"></ul>
+  <p class="pin"></p>
+</aside>
+
+<div id="caption" hidden>
+  <div class="step"></div>
+  <p></p>
+  <div class="btns">
+    <button class="mono-btn" id="capPrev">&larr; Prev</button>
+    <button class="mono-btn" id="capNext">Next &rarr;</button>
+    <button class="mono-btn" id="capPlay" aria-pressed="true">Pause</button>
+    <button class="mono-btn" id="capStop">Close</button>
+    <span class="dots"></span>
+  </div>
+</div>
+
+<div id="legend">
+  <span><i style="background:var(--c-water)"></i>Water in</span>
+  <span><i style="background:var(--c-heat)"></i>Heat out</span>
+  <span><i style="background:var(--c-power)"></i>Electricity</span>
+  <span><i style="background:var(--c-data)"></i>Your prompt</span>
+  <span><i style="background:var(--c-token)"></i>Answer tokens</span>
+</div>
+<div id="hint">Hover any part &middot; Esc to release</div>
+
+<div id="promptbar">
+  <span class="lab">Prompt</span>
+  <span class="field">
+    <span class="quote">&ldquo;</span>
+    <input id="pin" type="text" spellcheck="false" autocomplete="off" value="Why is the sky blue?" aria-label="Prompt">
+  </span>
+  <button class="mono-btn btn-run" id="run">Generate &crarr;</button>
+  <span class="out" id="out">idle<br><b></b></span>
+</div>
+
+<svg id="scene" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="6" stroke="var(--hatch)" stroke-width="1"/>
+    </pattern>
+    <pattern id="hatchD" width="3.4" height="3.4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="3.4" stroke="var(--hatch)" stroke-width="1"/>
+    </pattern>
+    <pattern id="hatchW" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+      <line x1="0" y1="0" x2="0" y2="5" stroke="var(--c-water)" stroke-width=".9" stroke-opacity=".5"/>
+    </pattern>
+    <pattern id="hatchP" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="5" stroke="var(--c-power)" stroke-width=".9" stroke-opacity=".55"/>
+    </pattern>
+    <pattern id="dots" width="7" height="7" patternUnits="userSpaceOnUse">
+      <circle cx="1.6" cy="1.6" r="1" fill="var(--hatch)"/>
+    </pattern>
+    <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,1 L9,5 L0,9 z" fill="var(--muted)"/>
+    </marker>
+    <marker id="arwT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,1 L9,5 L0,9 z" fill="var(--c-token)"/>
+    </marker>
+    <marker id="arwD" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,1 L9,5 L0,9 z" fill="var(--c-data)"/>
+    </marker>
+  </defs>
+  <g id="world">
+    <g id="L-bg"></g>
+    <g id="L-base"></g>
+    <g id="L-paths"></g>
+    <g id="L-flows"></g>
+    <g id="L-scene"></g>
+    <g id="L-ui">
+      <rect id="hilite" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="8 5" opacity="0" pointer-events="none" vector-effect="non-scaling-stroke"/>
+    </g>
+  </g>
+</svg>
+
+<script>
+/* ======================================================================
+   Plate library — everything is drawn as a printed engineering plate:
+   hairline ink strokes on paper, hatching for mass, five spot inks.
+   ====================================================================== */
+const NS='http://www.w3.org/2000/svg', XL='http://www.w3.org/1999/xlink';
+const $=id=>document.getElementById(id);
+const svg=$('scene'), world=$('world');
+const L={bg:$('L-bg'),base:$('L-base'),paths:$('L-paths'),flows:$('L-flows'),scene:$('L-scene'),ui:$('L-ui')};
+const C={
+  water:'var(--c-water)', heat:'var(--c-heat)', power:'var(--c-power)', data:'var(--c-data)', token:'var(--c-token)',
+  ink:'var(--ink)', soft:'var(--ink-soft)', muted:'var(--muted)', rule:'var(--rule)', mid:'var(--rule-mid)',
+  paper:'var(--paper)', deep:'var(--paper-deep)', sink:'var(--paper-sink)', accent:'var(--accent)',
+  tW:'var(--t-water)', tH:'var(--t-heat)', tD:'var(--t-data)', tT:'var(--t-token)'
+};
+const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function el(tag,attrs={},parent){
+  const e=document.createElementNS(NS,tag);
+  for(const k in attrs){ if(attrs[k]==null) continue; if(k==='text') e.textContent=attrs[k]; else e.setAttribute(k,attrs[k]); }
+  if(parent) parent.appendChild(e); return e;
+}
+const g=(p,a)=>el('g',a||{},p);
+const rect=(p,x,y,w,h,a)=>el('rect',{x,y,width:w,height:h,...a},p);
+const circ=(p,cx,cy,r,a)=>el('circle',{cx,cy,r,...a},p);
+const line=(p,x1,y1,x2,y2,a)=>el('line',{x1,y1,x2,y2,...a},p);
+const path=(p,d,a)=>el('path',{d,...a},p);
+const txt=(p,x,y,s,a)=>el('text',{x,y,text:s,...a},p);
+const poly=(p,pts,a)=>el('polygon',{points:pts,...a},p);
+
+/* a machine: paper body, ink hairline, optional hatched face */
+const body=(p,x,y,w,h,a)=>rect(p,x,y,w,h,{fill:C.deep,stroke:C.soft,'stroke-width':1.2,...a});
+const shade=(p,x,y,w,h,a)=>rect(p,x,y,w,h,{fill:'url(#hatch)',stroke:'none',...a});
+const dark =(p,x,y,w,h,a)=>rect(p,x,y,w,h,{fill:C.sink,stroke:C.mid,'stroke-width':.8,...a});
+/* printed caption: rule, mono name, italic descriptor */
+function cap(p,cx,y,name,sub,w=210){
+  line(p,cx-w/2,y-14,cx+w/2,y-14,{stroke:C.mid,'stroke-width':1});
+  txt(p,cx,y+2,name.toUpperCase(),{class:'lbl','text-anchor':'middle'});
+  if(sub) txt(p,cx,y+22,sub,{class:'note-s','text-anchor':'middle'});
+  return p;
+}
+function hot(e,id){ e.classList.add('hot'); e.setAttribute('data-info',id); return e; }
+
+/* ------------------------------------------------------------- geometry */
+const F={
+  A:{x:40,   y:60, w:1500,h:1300, num:'I',   t:'Sources',            s:'Water, electricity and your prompt all begin far from the building'},
+  B:{x:1620, y:60, w:2020,h:1300, num:'II',  t:'The building',        s:'Fibre, power and water cross the fence; one hall is opened up'},
+  C:{x:3720, y:60, w:780, h:1300, num:'III', t:'Rack B·14',      s:'A 42U cabinet: four GPU servers, two switches, forty kilowatts'},
+  D:{x:4580, y:60, w:1220,h:1300, num:'IV',  t:'The server, lid off', s:'Eight GPUs holding one model between them'},
+  E:{x:5880, y:60, w:1620,h:1300, num:'V',   t:'Inside the model',    s:'Eighty layers, one pass, one token'},
+};
+const WORLD={x:0,y:0,w:7560,h:1420};
+
+const LAY={};
+function layers(k){
+  if(LAY[k]) return LAY[k];
+  const f=F[k]; const t=f?`translate(${f.x} ${f.y})`:null;
+  const mk=parent=>t?g(parent,{transform:t}):g(parent);
+  return LAY[k]={b:mk(L.base),p:mk(L.paths),fl:mk(L.flows),s:mk(L.scene)};
+}
+function plate(k){
+  const f=F[k];
+  const fg=g(L.bg,{transform:`translate(${f.x} ${f.y})`});
+  rect(fg,0,0,f.w,f.h,{fill:C.paper,stroke:C.mid,'stroke-width':1.2});
+  rect(fg,10,10,f.w-20,f.h-20,{fill:'none',stroke:C.rule,'stroke-width':.8});
+  txt(fg,54,64,'FIG.',{class:'fig-kick'});
+  txt(fg,52,122,f.num,{class:'fig-num'});
+  txt(fg,132,100,f.t,{class:'fig-ttl'});
+  txt(fg,132,132,f.s,{class:'fig-sub'});
+  line(fg,40,158,f.w-40,158,{stroke:C.mid,'stroke-width':1});
+  line(fg,40,163,f.w-40,163,{stroke:C.rule,'stroke-width':1});
+  return layers(k);
+}
+function band(p,x,y,n,label){
+  txt(p,x,y,n,{class:'lbl-s',fill:C.accent});
+  txt(p,x+38,y,label.toUpperCase(),{class:'lbl-s'});
+  return p;
+}
+
+/* ------------------------------------------------------- moving matter */
+let pid=0;
+function flow(k,p,color,o={}){
+  const {n=6,dur=6,r=3,rev=false,delay=0}=o; const l=layers(k);
+  for(let i=0;i<n;i++){
+    const gg=g(l.fl);
+    circ(gg,0,0,r,{fill:color});
+    circ(gg,0,0,r*2.4,{fill:color,opacity:.16});
+    const am=el('animateMotion',{dur:dur+'s',repeatCount:'indefinite',begin:(-(i/n)*dur-delay)+'s'},gg);
+    if(rev){am.setAttribute('keyPoints','1;0');am.setAttribute('keyTimes','0;1');am.setAttribute('calcMode','linear');}
+    const mp=el('mpath',{},am); mp.setAttributeNS(XL,'xlink:href','#'+p.id); mp.setAttribute('href','#'+p.id);
+  }
+}
+function conduit(k,d,color,o={}){
+  const l=layers(k); const {w=4,alpha=.34,dash=null,n=6}=o;
+  if(w>0) path(l.b,d,{fill:'none',stroke:color,'stroke-width':w,'stroke-opacity':alpha,'stroke-linecap':'round','stroke-linejoin':'round','stroke-dasharray':dash});
+  const p=path(l.p,d,{fill:'none',stroke:'none',id:'mp'+(pid++)});
+  if(n>0) flow(k,p,color,o);
+  return p;
+}
+function hero(k,p,color,dur){
+  const l=layers(k); const gg=g(l.fl,{opacity:0});
+  circ(gg,0,0,13,{fill:color,opacity:.18}); circ(gg,0,0,6,{fill:color,stroke:C.paper,'stroke-width':1.5});
+  const am=el('animateMotion',{dur:dur+'s',begin:'indefinite',fill:'freeze'},gg);
+  const mp=el('mpath',{},am); mp.setAttributeNS(XL,'xlink:href','#'+p.id); mp.setAttribute('href','#'+p.id);
+  return {play(){ gg.setAttribute('opacity',1); try{am.beginElement();}catch(e){} setTimeout(()=>gg.setAttribute('opacity',0),dur*1000+200); }};
+}
+function fan(p,cx,cy,r,dur=2,blades=5,color){
+  const gg=g(p);
+  circ(gg,cx,cy,r,{fill:C.paper,stroke:C.soft,'stroke-width':1});
+  const b=g(gg);
+  for(let i=0;i<blades;i++) el('ellipse',{cx,cy:cy-r*.5,rx:r*.2,ry:r*.4,fill:'none',stroke:color||C.muted,'stroke-width':1.1,transform:`rotate(${i*360/blades} ${cx} ${cy})`},b);
+  circ(gg,cx,cy,r*.16,{fill:C.soft});
+  el('animateTransform',{attributeName:'transform',type:'rotate',from:`0 ${cx} ${cy}`,to:`360 ${cx} ${cy}`,dur:dur+'s',repeatCount:'indefinite'},b);
+  return gg;
+}
+const led=(p,cx,cy,color,delay,fast)=>rect(p,cx-1.2,cy-1.2,2.4,2.4,{fill:color,class:'led'+(fast?' fast':''),style:`animation-delay:${delay}s`});
+const arrow=(p,d,color,w=1.2,m='arw')=>path(p,d,{fill:'none',stroke:color||C.muted,'stroke-width':w,'marker-end':`url(#${m})`});
+const leader=(p,x1,y1,x2,y2)=>path(p,`M${x1},${y1} L${x2},${y2}`,{fill:'none',stroke:C.mid,'stroke-width':.9,'stroke-dasharray':'2 3'});
+const hitbox=(p,x,y,w,h,id)=>hot(rect(p,x,y,w,h,{fill:'transparent',class:'hit'}),id);
+</script>
+
+<script>
+/* ======================================================================
+   FIG. I — SOURCES
+   ====================================================================== */
+{
+const {s,b}=plate('A');
+
+/* ---------------------------------------------------- 1·1 the request */
+band(s,60,206,'1·1','The request leaves you');
+const dev=hot(g(s),'user');
+body(dev,70,240,196,128,{rx:2});
+dark(dev,84,254,168,88);
+window.DEV=[txt(dev,96,282,'Why is the sky',{class:'lbl-xs',fill:C.ink}),
+            txt(dev,96,300,'blue?',{class:'lbl-xs',fill:C.ink})];
+rect(dev,96,312,54,2,{fill:C.data,class:'led'});
+rect(dev,150,368,36,14,{fill:C.deep,stroke:C.soft,'stroke-width':1});
+rect(dev,110,382,116,6,{fill:C.sink,stroke:C.soft,'stroke-width':1});
+cap(dev,168,430,'Your device','the prompt leaves as a few encrypted kilobytes',230);
+
+const rtr=hot(g(s),'router');
+body(rtr,340,286,96,44,{rx:2});
+for(let i=0;i<4;i++) led(rtr,356+i*14,308,C.data,i*.3,true);
+[0,1].forEach(i=>line(rtr,360+i*46,286,352+i*54,254,{stroke:C.soft,'stroke-width':1.4}));
+[1,2,3].forEach(r=>path(rtr,`M388,${250-r*0} m0,0 a${r*13},${r*13} 0 0 1 ${r*11},${r*9}`,{fill:'none',stroke:C.data,'stroke-width':1,'stroke-opacity':.45}));
+cap(rtr,388,430,'Home router','ISP hand-off, first hop',180);
+
+const ix=hot(g(s),'fiber');
+body(ix,520,264,150,88,{rx:2});
+shade(ix,520,264,150,14);
+for(let r=0;r<3;r++) for(let i=0;i<9;i++) led(ix,534+i*14,294+r*18,C.data,((i*3+r*5)%11)/7,true);
+cap(ix,595,430,'Exchange & backbone','5–15 router hops, light at 200,000 km/s',300);
+
+/* long-haul fibre leaving the plate */
+path(b,'M266,304 H340 M436,304 H520 M670,304 H1500',{stroke:C.data,'stroke-width':1,'stroke-opacity':.4,'stroke-dasharray':'5 4'});
+txt(s,1080,294,'LONG-HAUL FIBRE — the prompt out, the answer back',{class:'lbl-xs','text-anchor':'middle'});
+hitbox(s,700,282,780,40,'fiber');
+
+/* --------------------------------------------------- 1·2 the electrons */
+band(s,60,486,'1·2','Where the electricity comes from');
+line(b,40,900,1460,900,{stroke:C.soft,'stroke-width':1.4});
+rect(b,40,900,1420,10,{fill:'url(#dots)'});
+
+const gas=hot(g(s),'gas');
+body(gas,60,700,270,200);
+shade(gas,60,700,270,26);
+[104,164].forEach((x,i)=>{ body(gas,x,540+i*30,34,160+ -i*30); });
+body(gas,220,760,94,140); for(let i=0;i<3;i++) rect(gas,232+i*28,780,18,100,{rx:9,fill:C.paper,stroke:C.soft,'stroke-width':1});
+[[121,540,0],[181,570,1.3],[121,540,2.4]].forEach(([x,y,dl])=>{
+  const c=circ(gas,x,y,7,{fill:'none',stroke:C.muted,'stroke-width':1,opacity:.5});
+  el('animate',{attributeName:'cy',from:y,to:y-120,dur:'4s',begin:`-${dl}s`,repeatCount:'indefinite'},c);
+  el('animate',{attributeName:'r',from:6,to:26,dur:'4s',begin:`-${dl}s`,repeatCount:'indefinite'},c);
+  el('animate',{attributeName:'opacity',from:.5,to:0,dur:'4s',begin:`-${dl}s`,repeatCount:'indefinite'},c);
+});
+cap(gas,195,952,'Gas turbine plant','dispatchable, 300–800 MW, runs at 3 a.m. too',280);
+
+const wind=hot(g(s),'wind');
+[400,505,610].forEach((x,i)=>{
+  path(wind,`M${x-5},900 L${x-2},600 L${x+2},600 L${x+5},900 Z`,{fill:C.deep,stroke:C.soft,'stroke-width':1});
+  circ(wind,x,596,7,{fill:C.deep,stroke:C.soft,'stroke-width':1});
+  const bl=g(wind);
+  for(let k=0;k<3;k++) path(bl,`M${x},596 L${x+5},${596-72} L${x-5},${596-72} Z`,{fill:C.paper,stroke:C.soft,'stroke-width':1,transform:`rotate(${k*120} ${x} 596)`});
+  el('animateTransform',{attributeName:'transform',type:'rotate',from:`${i*40} ${x} 596`,to:`${360+i*40} ${x} 596`,dur:(5.4+i*.7)+'s',repeatCount:'indefinite'},bl);
+});
+cap(wind,505,952,'Wind farm','bought forward under a power purchase agreement',300);
+
+const sol=hot(g(s),'solar');
+for(let r=0;r<3;r++) for(let c2=0;c2<7;c2++){
+  const x=690+c2*40,y=790+r*36;
+  path(sol,`M${x},${y+22} l32,0 l9,-22 l-32,0 z`,{fill:'url(#hatchP)',stroke:C.soft,'stroke-width':.9});
+}
+cap(sol,830,952,'Solar farm','cheap at noon, nothing at midnight',240);
+
+const bat=hot(g(s),'battery');
+[0,1].forEach(i=>{ body(bat,1000,790+i*56,120,48,{rx:2}); for(let k=0;k<5;k++) line(bat,1012+k*22,796+i*56,1012+k*22,832+i*56,{stroke:C.power,'stroke-width':1.4,'stroke-opacity':.6}); });
+cap(bat,1060,952,'Battery storage','shifts the midday surplus into the evening',250);
+
+/* collection bus */
+line(b,90,884,1160,884,{stroke:C.power,'stroke-width':2,'stroke-opacity':.5});
+[195,505,830,1060].forEach(x=>line(b,x,884,x,900,{stroke:C.power,'stroke-width':1.4,'stroke-opacity':.5}));
+
+const su=hot(g(s),'stepup');
+body(su,1180,800,80,100);
+circ(su,1204,856,15,{fill:'none',stroke:C.power,'stroke-width':1.6}); circ(su,1226,856,15,{fill:'none',stroke:C.power,'stroke-width':1.6});
+for(let i=0;i<3;i++) line(su,1194+i*22,800,1194+i*22,786,{stroke:C.power,'stroke-width':1.4});
+txt(su,1220,780,'20 kV → 230 kV',{class:'lbl-xs','text-anchor':'middle'});
+cap(su,1220,952,'Step-up','loss falls 100× for 10× the voltage',190);
+
+const tw=hot(g(s),'towers');
+function tower(x){
+  path(tw,`M${x-30},900 L${x-8},610 L${x+8},610 L${x+30},900`,{fill:'none',stroke:C.soft,'stroke-width':1.4});
+  path(tw,`M${x-20},780 L${x+20},780 M${x-14},700 L${x+14},700`,{stroke:C.soft,'stroke-width':1.1});
+  line(tw,x-44,660,x+44,660,{stroke:C.soft,'stroke-width':1.6});
+  line(tw,x-36,706,x+36,706,{stroke:C.soft,'stroke-width':1.6});
+  [x-42,x+42].forEach(ix=>path(tw,`M${ix},660 l0,10`,{stroke:C.soft,'stroke-width':2}));
+}
+tower(1320); tower(1400);
+path(tw,'M1260,830 Q1290,700 1320,656 Q1360,690 1400,656 L1460,690',{fill:'none',stroke:C.power,'stroke-width':1.2,'stroke-opacity':.55});
+conduit('A','M1258,838 Q1290,706 1318,662 Q1360,696 1398,662 L1470,700',C.power,{w:0,n:5,dur:5,r:3});
+txt(s,1360,600,'230–500 kV',{class:'lbl-xs','text-anchor':'middle'});
+cap(tw,1360,952,'Transmission','hundreds of km; the slowest thing to permit',230);
+
+/* ------------------------------------------------------- 1·3 the water */
+band(s,60,1010,'1·3','Where the cooling water comes from');
+const res=hot(g(s),'reservoir');
+path(res,'M60,1060 C130,1030 250,1038 330,1074 S430,1140 418,1194 C404,1258 280,1288 170,1278 S60,1236 60,1060 Z',
+  {fill:C.tW,stroke:C.water,'stroke-width':1.2});
+[0,1,2].forEach(i=>{
+  const w=path(res,`M110,${1110+i*42} q22,-9 44,0 t44,0 t44,0 t44,0`,{fill:'none',stroke:C.water,'stroke-width':1,'stroke-opacity':.55});
+  el('animateTransform',{attributeName:'transform',type:'translate',values:'0 0;-44 0',dur:(3+i*.5)+'s',repeatCount:'indefinite'},w);
+});
+txt(res,238,1084,'RIVER / RESERVOIR',{class:'lbl-s','text-anchor':'middle',fill:C.water});
+txt(res,238,1252,'or reclaimed municipal water',{class:'note-s','text-anchor':'middle'});
+
+const scr=hot(g(s),'intake');
+body(scr,420,1140,40,80); for(let i=0;i<5;i++) line(scr,420,1148+i*16,460,1148+i*16,{stroke:C.soft,'stroke-width':.9});
+const pump=hot(g(s),'pump');
+body(pump,478,1130,90,90); fan(pump,523,1175,26,1.3,4,C.water);
+cap(pump,500,1268,'Intake & pumps','screens fish and silt, then presses the main',250);
+
+const tr=hot(g(s),'treatment');
+body(tr,610,1108,260,112);
+[628,700,772].forEach(x=>{ rect(tr,x,1120,52,88,{rx:24,fill:'url(#hatchW)',stroke:C.soft,'stroke-width':1}); line(tr,x+26,1108,x+26,1120,{stroke:C.water,'stroke-width':1.4}); });
+cap(tr,740,1268,'Filter, soften, dose','silt out, minerals out, biocide in',250);
+
+const tank=hot(g(s),'tank');
+el('ellipse',{cx:975,cy:1108,rx:56,ry:14,fill:C.deep,stroke:C.soft,'stroke-width':1.2},tank);
+rect(tank,919,1108,112,104,{fill:'url(#hatchW)',stroke:C.soft,'stroke-width':1.2});
+el('ellipse',{cx:975,cy:1212,rx:56,ry:14,fill:C.deep,stroke:C.soft,'stroke-width':1.2},tank);
+cap(tank,975,1268,'Buffer tank','a day of make-up water on site',200);
+
+path(b,'M460,1180 H478 M568,1175 H610 M870,1164 H919',{stroke:C.water,'stroke-width':2,'stroke-opacity':.4});
+conduit('A','M1031,1160 H1500',C.water,{w:5,alpha:.32,n:7,dur:8,r:3.4});
+txt(s,1270,1146,'COLD SUPPLY MAIN',{class:'lbl-xs','text-anchor':'middle',fill:C.water});
+}
+
+/* ------------------------------------------------ cross-plate conduits */
+const P_D1=conduit('W','M306,364 H1980',C.data,{w:0,n:8,dur:5,r:3.4});
+flow('W',P_D1,C.token,{n:4,dur:5,r:2.8,rev:true,delay:1.1});
+const P_P2=conduit('W','M1510,760 H1570 V520 H1980',C.power,{w:3,alpha:.4,n:6,dur:5,r:3.4});
+const P_W1=conduit('W','M1540,1220 H1700 V1160',C.water,{w:5,alpha:.32,n:3,dur:2.4,r:3.4});
+</script>
+
+<script>
+/* ======================================================================
+   FIG. II — THE BUILDING
+   ====================================================================== */
+{
+const {s,b}=plate('B');
+
+/* shell of the building */
+rect(b,320,196,1660,1064,{fill:'none',stroke:C.soft,'stroke-width':2});
+rect(b,650,208,1320,1040,{fill:C.paper,stroke:C.mid,'stroke-width':1});
+txt(s,340,190,'BUILDING ENVELOPE',{class:'lbl-xs'});
+txt(s,1310,1288,'Data hall B — 2 rows × 16 racks. The campus holds four halls and roughly four thousand racks.',{class:'note','text-anchor':'middle'});
+
+function room(x,y,w,h,id,title,sub){
+  const r=hot(g(s),id);
+  rect(r,x,y,w,h,{fill:C.deep,stroke:C.soft,'stroke-width':1.1});
+  line(r,x,y+26,x+w,y+26,{stroke:C.soft,'stroke-width':.9});
+  rect(r,x,y,w,26,{fill:'url(#hatch)',opacity:.5});
+  txt(r,x+10,y+18,title.toUpperCase(),{class:'lbl-s',fill:C.ink});
+  if(sub) txt(r,x+10,y+h+16,sub,{class:'note-s'});
+  return r;
+}
+
+/* -------------------------------------------------------- outside plant */
+{ const r=hot(g(s),'gen');
+  [700,790].forEach(y=>{ body(r,70,y,120,64); shade(r,70,y,120,10); dark(r,82,y+16,64,40); circ(r,166,y+32,14,{fill:'none',stroke:C.power,'stroke-width':1.4}); rect(r,86,y-18,10,18,{fill:C.deep,stroke:C.soft,'stroke-width':1}); });
+  body(r,210,700,72,154,{rx:2}); txt(r,246,772,'FUEL',{class:'lbl-xs','text-anchor':'middle'}); txt(r,246,790,'72 h',{class:'lbl-xs','text-anchor':'middle'});
+  cap(r,176,900,'Backup generators','on load in under ten seconds',240);
+  path(b,'M282,780 H310 V500 H360',{fill:'none',stroke:C.power,'stroke-width':1.1,'stroke-dasharray':'5 4','stroke-opacity':.5});
+}
+{ const r=hot(g(s),'coolingtower');
+  [70,200].forEach((x,i)=>{
+    body(r,x,1020,110,190);
+    for(let k=0;k<8;k++) line(r,x+8,1056+k*18,x+102,1056+k*18,{stroke:C.soft,'stroke-width':.8,'stroke-opacity':.6});
+    rect(r,x,1198,110,12,{fill:'url(#hatchW)',stroke:C.soft,'stroke-width':.8});
+    fan(r,x+55,1012,32,2.8,6,C.muted);
+    for(let k=0;k<3;k++){ const c=circ(r,x+28+k*26,986,6,{fill:'none',stroke:C.muted,'stroke-width':1,opacity:.45});
+      el('animate',{attributeName:'cy',from:980,to:890,dur:'3.4s',begin:`-${k*1.1+i*.6}s`,repeatCount:'indefinite'},c);
+      el('animate',{attributeName:'r',from:5,to:22,dur:'3.4s',begin:`-${k*1.1+i*.6}s`,repeatCount:'indefinite'},c);
+      el('animate',{attributeName:'opacity',from:.45,to:0,dur:'3.4s',begin:`-${k*1.1+i*.6}s`,repeatCount:'indefinite'},c); }
+  });
+  cap(r,190,1268,'Cooling towers','evaporate 1–2 % per pass — the water bill',260);
+}
+
+/* ------------------------------------------------------------- rooms */
+{ const r=room(360,220,240,150,'meetme','Meet-me room','carrier cross-connects, DDoS scrubbing');
+  for(let row=0;row<2;row++){ dark(r,376,290+row*32,110,20); for(let i=0;i<10;i++) led(r,384+i*10,300+row*32,C.data,((i*.13+row*.4)%1.6),true); }
+  body(r,500,290,84,52); txt(r,542,320,'EDGE RTR',{class:'lbl-xs','text-anchor':'middle'});
+}
+{ const r=room(360,420,240,140,'switchgear','MV switchgear','34.5 kV in, two feeds, breakers, meters');
+  for(let i=0;i<4;i++){ body(r,376+i*54,462,44,80); line(r,398+i*54,482,410+i*54,502,{stroke:C.power,'stroke-width':1.6}); circ(r,398+i*54,482,2.4,{fill:C.power}); circ(r,398+i*54,512,2.4,{fill:C.power}); }
+}
+{ const r=room(360,600,240,160,'ups','UPS + batteries','rides the ten seconds until the generators catch');
+  body(r,376,644,66,96); txt(r,409,698,'UPS',{class:'lbl-xs','text-anchor':'middle',fill:C.ink});
+  for(let row=0;row<4;row++) for(let i=0;i<6;i++) rect(r,458+i*22,646+row*24,17,18,{fill:'url(#hatchP)',stroke:C.soft,'stroke-width':.7});
+}
+{ const r=room(360,800,240,120,'pduroom','Transformers','34.5 kV → 415 V three-phase, A and B paths');
+  [378,486].forEach(x=>{ body(r,x,842,84,62); for(let i=0;i<5;i++) line(r,x+84,850+i*12,x+94,850+i*12,{stroke:C.power,'stroke-width':1.2}); });
+}
+{ const r=room(360,960,240,140,'chillers','Chillers','only when the outside air is too warm');
+  [378,494].forEach(x=>{ body(r,x,1002,104,82); circ(r,x+30,1044,15,{fill:'none',stroke:C.water,'stroke-width':1.4}); circ(r,x+72,1044,15,{fill:'none',stroke:C.heat,'stroke-width':1.4}); });
+}
+{ const r=room(360,1140,240,120,'cdu','Coolant distribution unit','keeps clean rack coolant apart from facility water');
+  path(r,'M378,1204 h22 l11,-15 l22,30 l22,-30 l22,30 l22,-30 l11,15 h22',{fill:'none',stroke:C.water,'stroke-width':2});
+  fan(r,566,1224,15,1.2,4,C.water); fan(r,530,1224,15,1.4,4,C.heat);
+  txt(r,378,1246,'heat exchanger + pumps',{class:'lbl-xs'});
+}
+
+/* facility water loop, left column */
+conduit('B','M300,1180 H330 V1010 H360',C.water,{w:4,alpha:.34,n:3,dur:3,r:3});
+conduit('B','M360,1046 H316 V1160 H300',C.heat,{w:4,alpha:.34,n:3,dur:3,r:3});
+conduit('B','M480,1100 V1140',C.water,{w:4,alpha:.34,n:1,dur:1.6,r:3});
+conduit('B','M540,1140 V1100',C.heat,{w:4,alpha:.34,n:1,dur:1.6,r:3});
+
+/* power spine inside: switchgear → UPS → transformers → busway */
+conduit('B','M480,560 V600 M480,760 V800 M600,880 H660 V460 H1830',C.power,{w:3,alpha:.45,n:9,dur:7,r:3});
+line(b,660,460,1900,460,{stroke:C.power,'stroke-width':3,'stroke-opacity':.4});
+line(b,660,880,1900,880,{stroke:C.power,'stroke-width':3,'stroke-opacity':.4});
+hitbox(s,900,450,700,20,'busway');
+txt(s,1250,450,'OVERHEAD BUSWAY 415 V — A SIDE',{class:'lbl-xs','text-anchor':'middle'});
+txt(s,1250,898,'OVERHEAD BUSWAY 415 V — B SIDE',{class:'lbl-xs','text-anchor':'middle'});
+
+{ const r=hot(g(s),'pdu'); [500,820].forEach((y,i)=>{ body(r,1900,y,54,120); txt(r,1927,y+66,'PDU '+'AB'[i],{class:'lbl-xs','text-anchor':'middle',fill:C.ink}); for(let k=0;k<6;k++) line(r,1908,y+20+k*12,1946,y+20+k*12,{stroke:C.power,'stroke-width':.9,'stroke-opacity':.5}); }); }
+{ const r=hot(g(s),'fanwall'); for(let i=0;i<5;i++){ body(r,1900,196+i*208,54,90); fan(r,1927,241+i*208,18,1.8+i*.25,5,C.muted); } txt(r,1927,1252,'FAN WALL',{class:'lbl-xs','text-anchor':'middle'}); }
+
+/* network core */
+{ const r=hot(g(s),'spine');
+  for(let i=0;i<4;i++){ body(r,690+i*82,230,70,112); shade(r,690+i*82,230,70,10);
+    for(let row=0;row<6;row++) for(let k=0;k<6;k++) led(r,700+i*82+k*10,250+row*15,C.data,((i*7+row*3+k)*.11)%1.6,true); }
+  cap(r,855,382,'Spine & edge routers','400/800 G — any rack to any rack',300);
+}
+line(b,700,406,1900,406,{stroke:C.data,'stroke-width':1.2,'stroke-opacity':.35,'stroke-dasharray':'6 5'});
+txt(s,1500,400,'OVERHEAD FIBRE TRAY',{class:'lbl-xs','text-anchor':'middle'});
+
+/* aisles */
+{ const ca=hot(g(s),'coldaisle');
+  rect(ca,700,612,1130,160,{fill:C.tW,stroke:C.water,'stroke-width':.9,'stroke-dasharray':'6 5'});
+  txt(ca,1265,698,'COLD AISLE — CONTAINED, 22 °C SUPPLY AIR',{class:'lbl-s','text-anchor':'middle',fill:C.water});
+  const ha=hot(g(s),'hotaisle');
+  rect(ha,700,418,1130,44,{fill:C.tH,stroke:'none'});
+  rect(ha,700,922,1130,44,{fill:C.tH,stroke:'none'});
+  txt(ha,1265,946,'HOT AISLE — 40 °C EXHAUST TO THE FAN WALL',{class:'lbl-s','text-anchor':'middle',fill:C.heat});
+}
+
+/* racks */
+function rackEl(x,y,label,id,hi){
+  const r=hot(g(s),id);
+  const outer=rect(r,x,y,56,112,{fill:C.deep,stroke:hi?C.data:C.soft,'stroke-width':hi?2:1});
+  rect(r,x+5,y+6,46,3,{fill:C.data,opacity:.7});
+  for(let k=0;k<4;k++){ dark(r,x+5,y+15+k*23,46,19); led(r,x+11,y+25+k*23,C.token,((x+k*37)%17)/10); }
+  txt(r,x+28,y+128,label,{class:'lbl-xs','text-anchor':'middle',fill:hi?C.data:C.muted});
+  if(hi) el('animate',{attributeName:'stroke-opacity',values:'1;.3;1',dur:'2s',repeatCount:'indefinite'},outer);
+  return r;
+}
+for(let i=0;i<16;i++){ rackEl(720+i*70,480,'A-'+(i+1),'rack',false); rackEl(720+i*70,780,'B-'+(i+1),i===13?'rack14':'rack',i===13); }
+txt(s,706,544,'ROW A',{class:'lbl-s','text-anchor':'end'});
+txt(s,706,844,'ROW B',{class:'lbl-s','text-anchor':'end'});
+txt(s,1658,772,'▼ RACK B-14',{class:'lbl-s','text-anchor':'middle',fill:C.data});
+
+/* fibre down to B-14 */
+const P_D2=conduit('B','M360,304 H690 V406 H1658 V780',C.data,{w:1.4,alpha:.5,n:8,dur:6,r:3.4});
+flow('B',P_D2,C.token,{n:4,dur:6,r:2.8,rev:true,delay:1.2});
+
+/* technology loop under the floor */
+line(b,660,1078,1900,1078,{stroke:C.water,'stroke-width':2.4,'stroke-opacity':.25});
+line(b,660,1100,1900,1100,{stroke:C.heat,'stroke-width':2.4,'stroke-opacity':.25});
+for(let i=0;i<16;i++){ if(i===13) continue; const x=744+i*70; line(b,x-4,892,x-4,1078,{stroke:C.water,'stroke-width':1,'stroke-opacity':.14}); line(b,x+4,892,x+4,1100,{stroke:C.heat,'stroke-width':1,'stroke-opacity':.14}); }
+conduit('B','M600,1078 H1650 V892',C.water,{w:2.4,alpha:.45,n:8,dur:7,r:3});
+conduit('B','M1666,892 V1100 H600',C.heat,{w:2.4,alpha:.45,n:8,dur:7,r:3});
+hitbox(s,700,1068,1160,44,'techloop');
+txt(s,1200,1134,'TECHNOLOGY LOOP UNDER THE RAISED FLOOR — 25 °C OUT, 45 °C BACK',{class:'lbl-xs','text-anchor':'middle'});
+window.P_D2=P_D2;
+}
+</script>
+
+<script>
+/* ======================================================================
+   FIG. III — RACK B·14
+   ====================================================================== */
+{
+const {s,b}=plate('C');
+const RX=200, RY=210, U=24, RW=400;
+const uy=u=>RY+(42-u)*U;
+
+rect(b,RX-16,RY-16,RW+32,42*U+32,{fill:C.deep,stroke:C.soft,'stroke-width':1.6});
+[RX-10,RX+RW+2].forEach(x=>rect(b,x,RY-10,8,42*U+20,{fill:'url(#hatch)',stroke:C.soft,'stroke-width':.8}));
+for(let u=42;u>=1;u-=6){ txt(s,RX-26,uy(u)+15,u,{class:'lbl-xs','text-anchor':'end'}); line(b,RX-22,uy(u)+11,RX-16,uy(u)+11,{stroke:C.mid,'stroke-width':.8}); }
+txt(s,RX-26,RY+42*U+22,'U',{class:'lbl-xs','text-anchor':'end'});
+
+{ const r=hot(g(s),'rackpdu'); [RX-4,RX+RW-2].forEach(x=>{ rect(r,x,RY,6,42*U,{fill:'url(#hatchP)',stroke:C.soft,'stroke-width':.7}); for(let u=40;u>=4;u-=2) circ(r,x+3,uy(u)+12,1.4,{fill:C.power}); }); }
+
+function tor(uTop,label){
+  const r=hot(g(s),'tor'); const y=uy(uTop);
+  body(r,RX+8,y+2,RW-16,2*U-4);
+  for(let row=0;row<2;row++) for(let i=0;i<16;i++){ dark(r,RX+20+i*14,y+8+row*20,11,12); led(r,RX+25+i*14,y+24+row*20,C.data,((i*5+row*7)%13)/8,true); }
+  txt(r,RX+RW-12,y+32,label,{class:'lbl-xs','text-anchor':'end',fill:C.ink}); return r;
+}
+tor(42,'ToR 1 · 32 × 400 G'); tor(40,'ToR 2 · 32 × 400 G');
+{ const r=hot(g(s),'mgmt'); const y=uy(38); body(r,RX+8,y+2,RW-16,U-4); for(let i=0;i<24;i++) led(r,RX+22+i*10,y+13,C.token,(i%7)/5); txt(r,RX+RW-12,y+17,'Management 1 G',{class:'lbl-xs','text-anchor':'end'}); }
+
+function server(uTop,n,hi){
+  const r=hot(g(s),hi?'server2':'server'); const y=uy(uTop), h=8*U-4;
+  const outer=rect(r,RX+8,y+2,RW-16,h,{fill:hi?C.tD:C.deep,stroke:hi?C.data:C.soft,'stroke-width':hi?2:1.1});
+  if(hi) el('animate',{attributeName:'stroke-opacity',values:'1;.35;1',dur:'2s',repeatCount:'indefinite'},outer);
+  for(let i=0;i<8;i++){ dark(r,RX+22+i*45,y+12,37,20); led(r,RX+54+i*45,y+22,C.token,(i*.3+n)%1.6); }
+  txt(r,RX+24,y+56,`GPU SERVER ${n} — 8U · 8 GPUs · 2 CPUs · ~10 kW`,{class:'lbl-xs',fill:C.ink});
+  txt(r,RX+24,y+76,hi?'your prompt is running in this one':'identical node, other people’s requests',{class:'note-s',fill:hi?C.data:C.muted});
+  for(let i=0;i<6;i++) fan(r,RX+46+i*62,y+h-38,18,1.2+i*.18,5,C.muted);
+  for(let i=0;i<8;i++){ dark(r,RX+20+i*46,y+h-12,38,8); led(r,RX+24+i*46,y+h-8,C.data,(i*.21)%1.4,true); }
+  line(r,RX+2,y+40,RX+8,y+40,{stroke:C.power,'stroke-width':3});
+  line(r,RX+RW-8,y+40,RX+RW-2,y+40,{stroke:C.power,'stroke-width':3});
+  return r;
+}
+server(37,1,false); server(29,2,true); server(21,3,false); server(13,4,false);
+{ const r=hot(g(s),'blank'); const y=uy(5); rect(r,RX+8,y+2,RW-16,5*U-4,{fill:'url(#hatch)',opacity:.5,stroke:C.mid,'stroke-width':.8,'stroke-dasharray':'4 3'});
+  txt(r,RX+RW/2,y+64,'BLANKING PANELS + CABLE MANAGEMENT',{class:'lbl-xs','text-anchor':'middle'}); }
+
+/* coolant manifold up the back */
+{ const r=hot(g(s),'manifold');
+  rect(r,632,RY+30,11,42*U-30,{fill:C.water,opacity:.75});
+  rect(r,652,RY+30,11,42*U-30,{fill:C.heat,opacity:.75});
+  [37,29,21,13].forEach(u=>{ const y=uy(u)+40;
+    path(r,`M${RX+RW-8},${y} C616,${y} 614,${y+18} 638,${y+18}`,{fill:'none',stroke:C.water,'stroke-width':2.2,'stroke-opacity':.75});
+    path(r,`M${RX+RW-8},${y+58} C640,${y+58} 636,${y+40} 658,${y+40}`,{fill:'none',stroke:C.heat,'stroke-width':2.2,'stroke-opacity':.75});
+  });
+  txt(r,648,RY+18,'COOLANT',{class:'lbl-xs','text-anchor':'middle'});
+  txt(r,648,RY+42*U+22,'to CDU',{class:'lbl-xs','text-anchor':'middle'});
+}
+conduit('C','M638,1250 V240',C.water,{w:0,n:6,dur:5,r:2.6});
+conduit('C','M658,240 V1250',C.heat,{w:0,n:6,dur:5,r:2.6});
+
+const P_D3=conduit('C',`M340,196 V212 H176 V${uy(29)+40} H${RX+8}`,C.data,{w:1.4,alpha:.55,n:5,dur:4,r:3.4});
+flow('C',P_D3,C.token,{n:3,dur:4,r:2.8,rev:true,delay:.8});
+[uy(37)+40,uy(21)+40,uy(13)+40].forEach(y=>path(b,`M176,${y} H${RX+8}`,{stroke:C.data,'stroke-width':1,'stroke-opacity':.25}));
+
+[[uy(41)+10,'every NIC uplinks to these two'],[uy(38)+16,'out-of-band control'],[uy(25)+4,'the node running your prompt'],[uy(9)+10,'415 V, two independent cords'],[uy(3)+30,'sealed so cold air can’t leak past']].forEach(([y,t])=>{
+  txt(s,168,y,t,{class:'note-s','text-anchor':'end'}); leader(s,172,y-4,RX-20,y-4);
+});
+txt(s,690,uy(25)+2,'SUPPLY 25 °C',{class:'lbl-xs',fill:C.water});
+txt(s,690,uy(25)+20,'RETURN 45 °C',{class:'lbl-xs',fill:C.heat});
+window.P_D3=P_D3;
+}
+
+/* ======================================================================
+   FIG. IV — THE SERVER
+   ====================================================================== */
+{
+const {s,b}=plate('D');
+rect(b,100,210,1020,1030,{fill:C.deep,stroke:C.soft,'stroke-width':1.6});
+rect(b,116,226,988,998,{fill:C.paper,stroke:C.mid,'stroke-width':.9});
+
+/* CPUs, DRAM, PCIe */
+{ const cpu=hot(g(s),'cpu');
+  [340,600].forEach((y,i)=>{ body(cpu,150,y,104,104); rect(cpu,168,y+18,68,68,{fill:'url(#hatchD)',stroke:C.soft,'stroke-width':.9}); txt(cpu,202,y+58,'CPU '+i,{class:'lbl-xs','text-anchor':'middle',fill:C.ink}); });
+  txt(cpu,202,326,'2 × CPUs',{class:'lbl-s','text-anchor':'middle'});
+  txt(cpu,202,730,'tokenising, batching,',{class:'note-s','text-anchor':'middle'});
+  txt(cpu,202,748,'scheduling, launching kernels',{class:'note-s','text-anchor':'middle'});
+  const dram=hot(g(s),'dram');
+  [340,600].forEach(y=>{ for(let i=0;i<8;i++) rect(dram,268+i*10,y,5,104,{fill:C.sink,stroke:C.soft,'stroke-width':.5}); });
+  txt(dram,308,326,'DRAM 2 TB',{class:'lbl-xs','text-anchor':'middle'});
+}
+{ const p=hot(g(s),'pcie'); [366,626].forEach(y=>{ body(p,352,y,48,48); txt(p,376,y+29,'PCIe',{class:'lbl-xs','text-anchor':'middle',fill:C.ink}); line(p,254,y+24,352,y+24,{stroke:C.soft,'stroke-width':1.2}); }); }
+{ const ps=hot(g(s),'psu');
+  for(let i=0;i<4;i++){ body(ps,150+i*56,1040,48,116); shade(ps,150+i*56,1040,48,10); led(ps,174+i*56,1058,C.token,i*.4); txt(ps,174+i*56,1112,'3 kW',{class:'lbl-xs','text-anchor':'middle',fill:C.ink}); }
+  cap(ps,262,1200,'Power supplies','415 V AC → 54 V DC, N+1, ~95 % efficient',280); }
+path(b,'M380,1090 H414 V340 H1080 M414,760 H1080',{fill:'none',stroke:C.power,'stroke-width':2,'stroke-opacity':.3});
+conduit('D','M380,1090 H414 V760 H830',C.power,{w:0,n:5,dur:4,r:2.6});
+
+/* coolant rails */
+path(b,'M300,210 V250 H1080 V660 H430 M1080,420 H430',{fill:'none',stroke:C.water,'stroke-width':2,'stroke-opacity':.45});
+path(b,'M1100,210 V860 H430 M1100,440 H430',{fill:'none',stroke:C.heat,'stroke-width':2,'stroke-opacity':.45});
+conduit('D','M300,210 V250 H1080 V660 H830 V690',C.water,{w:0,n:6,dur:5,r:2.6});
+conduit('D','M830,830 V860 H1100 V210',C.heat,{w:0,n:6,dur:5,r:2.6});
+txt(s,300,200,'COOLANT IN 25 °C',{class:'lbl-xs','text-anchor':'middle',fill:C.water});
+txt(s,1100,200,'OUT 45 °C',{class:'lbl-xs','text-anchor':'middle',fill:C.heat});
+
+/* NVLink fabric */
+{ const nv=hot(g(s),'nvswitch');
+  body(nv,430,480,630,130);
+  for(let i=0;i<4;i++){ body(nv,480+i*148,516,62,62); txt(nv,511+i*148,552,'NVS',{class:'lbl-xs','text-anchor':'middle',fill:C.ink}); }
+  txt(nv,745,504,'NVLINK SWITCH FABRIC — 900 GB/s PER GPU, ANY TO ANY',{class:'lbl-xs','text-anchor':'middle'});
+}
+
+/* GPUs */
+for(let row=0;row<2;row++) for(let i=0;i<4;i++){
+  const n=row*4+i, x=430+i*160, y=row?690:280, hi=(n===6);
+  const gp=hot(g(s),hi?'gpu6':'gpu');
+  const outer=rect(gp,x,y,140,140,{fill:hi?C.tD:C.deep,stroke:hi?C.data:C.soft,'stroke-width':hi?2:1.1});
+  if(hi) el('animate',{attributeName:'stroke-opacity',values:'1;.35;1',dur:'2s',repeatCount:'indefinite'},outer);
+  for(let k=0;k<3;k++){ rect(gp,x+11,y+14+k*40,22,32,{fill:'url(#hatchD)',stroke:C.soft,'stroke-width':.8}); rect(gp,x+107,y+14+k*40,22,32,{fill:'url(#hatchD)',stroke:C.soft,'stroke-width':.8}); }
+  rect(gp,x+42,y+42,56,56,{fill:C.paper,stroke:C.soft,'stroke-width':1});
+  for(let r2=0;r2<3;r2++) for(let c2=0;c2<3;c2++) rect(gp,x+47+c2*16,y+47+r2*16,12,12,{fill:C.data,class:'cell',style:`animation-delay:${((n*3+r2*5+c2*7)%9)/4}s`});
+  path(gp,`M${x+6},${y+8} h128 v20 h-128 v20 h128 v20 h-128 v20 h128 v20 h-128 v20 h128`,{fill:'none',stroke:C.water,'stroke-width':1.1,'stroke-opacity':.35});
+  txt(gp,x+70,y-8,'GPU '+n,{class:'lbl-s','text-anchor':'middle',fill:hi?C.data:C.muted});
+  const cx=x+70, ly=row?y:y+140, sy=row?610:480;
+  line(b,cx,ly,cx,sy,{stroke:C.soft,'stroke-width':1,'stroke-opacity':.45});
+  conduit('D',`M${cx},${ly} V${sy}`,C.muted,{w:0,n:2,dur:1.3,r:2,delay:n*.13});
+  conduit('D',`M${cx},${sy} V${ly}`,C.muted,{w:0,n:2,dur:1.3,r:2,delay:n*.13+.65});
+}
+hitbox(s,441,294,24,32,'hbm');
+hitbox(s,900,286,60,16,'coldplate');
+txt(s,760,858,'Eight GPUs, 141 GB of HBM each (the hatched stacks), a liquid cold plate over the die',{class:'note','text-anchor':'middle'});
+txt(s,830,676,'GPU 6 holds one eighth of every weight matrix',{class:'note-s','text-anchor':'middle',fill:C.data});
+
+/* NICs */
+{ const nic=hot(g(s),'nic');
+  for(let i=0;i<8;i++){ const x=430+i*80;
+    rect(nic,x,900,70,58,{fill:i===6?C.tD:C.deep,stroke:i===6?C.data:C.soft,'stroke-width':i===6?1.8:1});
+    dark(nic,x+8,908,54,14); led(nic,x+16,915,C.data,(i*.17)%1.3,true); led(nic,x+26,915,C.token,(i*.23)%1.3,true);
+    txt(nic,x+35,944,'NIC '+i,{class:'lbl-xs','text-anchor':'middle',fill:C.ink}); }
+  txt(nic,750,984,'8 × 400 Gb/s — RDMA writes straight into GPU memory',{class:'note-s','text-anchor':'middle'});
+}
+const P_D4=conduit('D','M100,1000 H945 V958',C.data,{w:1.4,alpha:.5,n:5,dur:4,r:3.4});
+flow('D',P_D4,C.token,{n:3,dur:4,r:2.8,rev:true,delay:.7});
+const P_D4b=conduit('D','M945,900 V876 H830 V830',C.data,{w:1.4,alpha:.5,n:3,dur:1.7,r:3.4});
+flow('D',P_D4b,C.token,{n:2,dur:1.7,r:2.8,rev:true,delay:.5});
+txt(s,112,1024,'FROM THE ToR SWITCH',{class:'lbl-xs'});
+window.P_D4=P_D4; window.P_D4b=P_D4b;
+}
+</script>
+
+<script>
+/* ======================================================================
+   FIG. V — INSIDE THE MODEL   (everything here is driven by your prompt)
+   ====================================================================== */
+const MV={};
+{
+const {s,b}=plate('E');
+
+/* ---------------------------------------------------------- top band */
+band(s,60,196,'5·1','Your words become numbers');
+
+{ const pr=hot(g(s),'prompt'); body(pr,60,212,560,56);
+  const fo=el('foreignObject',{x:70,y:214,width:540,height:52,'pointer-events':'none'},pr);
+  const d=document.createElement('div'); d.setAttribute('xmlns','http://www.w3.org/1999/xhtml');
+  d.style.cssText='font-family:var(--serif-body);font-style:italic;font-size:19px;line-height:52px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+  fo.appendChild(d); MV.promptEcho=d;
+  txt(pr,60,290,'PROMPT + SYSTEM PROMPT + CHAT TEMPLATE',{class:'lbl-xs'});
+}
+arrow(s,'M624,240 H656',C.muted);
+{ const tk=hot(g(s),'tokenizer'); body(tk,660,212,150,56); txt(tk,735,246,'TOKENISER',{class:'lbl-s','text-anchor':'middle',fill:C.ink}); txt(tk,660,290,'BYTE-PAIR ENCODING, ON THE CPU',{class:'lbl-xs'}); }
+arrow(s,'M814,240 H846',C.muted);
+{ const em=hot(g(s),'embed'); body(em,850,212,190,56); txt(em,945,246,'EMBEDDING + RoPE',{class:'lbl-s','text-anchor':'middle',fill:C.ink}); txt(em,850,290,'ONE 12,288-NUMBER VECTOR PER TOKEN',{class:'lbl-xs'}); }
+{ const st=hot(g(s),'stats'); body(st,1070,212,430,56);
+  MV.stats=txt(st,1085,246,'',{class:'lbl-s',fill:C.ink});
+  txt(st,1070,290,'CONTEXT LENGTH · KV CACHE · PASS COUNT',{class:'lbl-xs'});
+}
+
+/* token chips (rebuilt on every prompt) */
+line(b,60,330,1500,330,{stroke:C.mid,'stroke-width':.9});
+txt(s,60,302,'ATTENTION FROM THE TOKEN BEING PREDICTED ↓',{class:'lbl-xs',fill:C.data});
+MV.chipG=hot(g(s),'tokens');
+txt(s,60,426,'POSITION · TOKEN · ID · THE KEY AND VALUE VECTORS CACHED FOR IT IN ALL 80 LAYERS',{class:'lbl-xs'});
+
+/* ------------------------------------------------------------- layers */
+band(s,60,452,'5·2','Eighty layers refine every vector');
+path(b,'M1090,268 V300 H110 V920',{fill:'none',stroke:C.mid,'stroke-width':3});
+const P_SPINE=conduit('E','M1090,268 V300 H110 V920',C.data,{w:0,n:5,dur:5,r:3});
+txt(s,98,640,'RESIDUAL STREAM',{class:'lbl-xs','text-anchor':'middle',transform:'rotate(-90 98 640)'});
+
+const LAYERS=[['Layer 1',470],['Layer 2',575],['Layer 3',680],['Layer 80',800]];
+const sweeps=[]; MV.attnCells=[];
+LAYERS.forEach(([name,y],li)=>{
+  const lg=hot(g(s),'layer');
+  rect(lg,60,y,1440,96,{fill:C.paper,stroke:C.mid,'stroke-width':1});
+  txt(lg,18+60,y+24,name.toUpperCase(),{class:'lbl-s',fill:C.ink});
+  if(li===0) txt(lg,78,y+42,'of 80',{class:'lbl-xs'});
+  for(let k=0;k<8;k++) line(lg,170,y+10+k*10.4,1496,y+10+k*10.4,{stroke:k===6?C.data:C.mid,'stroke-width':k===6?1.6:.7,'stroke-opacity':k===6?.85:.4,class:k===6?'shimmer':''});
+  if(li===0){ txt(lg,1506,y-8,'8 LANES = 8 GPUs · TENSOR PARALLEL',{class:'lbl-xs','text-anchor':'end'}); txt(lg,1506,y+92,'BRIGHT LANE: GPU 6',{class:'lbl-xs','text-anchor':'end',fill:C.data}); }
+  const nb=(x,w,label,id,color)=>{ const bb=hot(g(s),id);
+    rect(bb,x,y+24,w,54,{fill:C.deep,stroke:color||C.soft,'stroke-width':1.1});
+    if(w>300) txt(bb,x+12,y+40,label.toUpperCase(),{class:'lbl-xs',fill:C.ink});
+    else txt(bb,x+w/2,y+40,label.toUpperCase(),{class:'lbl-xs','text-anchor':'middle',fill:C.ink});
+    return bb; };
+  nb(190,56,'Norm','norm');
+  const at=nb(258,380,'Self-attention','attn');
+  ['Q','K','V'].forEach((q,i)=>{ rect(at,272+i*28,y+48,22,22,{fill:C.paper,stroke:C.soft,'stroke-width':.8}); txt(at,283+i*28,y+63,q,{class:'lbl-xs','text-anchor':'middle',fill:C.ink}); });
+  for(let r2=0;r2<3;r2++) for(let c2=0;c2<12;c2++){
+    const cell=rect(at,370+c2*12,y+46+r2*10,9,8,{fill:C.data,class:'cell',style:`animation-delay:${((li*5+r2*3+c2*7)%12)/5}s`});
+    MV.attnCells.push(cell);
+  }
+  txt(at,632,y+38,'which earlier tokens matter?',{class:'note-s','text-anchor':'end'});
+  const kv=hot(g(s),'kvcache');
+  el('ellipse',{cx:685,cy:y+40,rx:22,ry:6,fill:C.deep,stroke:C.soft,'stroke-width':.9},kv);
+  rect(kv,663,y+40,44,26,{fill:C.deep,stroke:C.soft,'stroke-width':.9});
+  el('ellipse',{cx:685,cy:y+66,rx:22,ry:6,fill:C.deep,stroke:C.soft,'stroke-width':.9},kv);
+  txt(kv,685,y+88,'KV CACHE',{class:'lbl-xs','text-anchor':'middle'});
+  const ar=nb(732,84,'All-reduce','allreduce',C.water); for(let k=0;k<8;k++) led(ar,744+k*9,y+64,C.water,(k*.15)%1.2,true);
+  nb(828,56,'Norm','norm');
+  const ml=nb(896,330,'MLP (feed-forward)','mlp');
+  [[910,36],[952,84],[1044,36]].forEach(([x,w])=>rect(ml,x,y+50,w,20,{fill:C.paper,stroke:C.soft,'stroke-width':.8}));
+  txt(ml,1092,y+64,'up ×4 · SwiGLU · down',{class:'lbl-xs'});
+  txt(ml,1216,y+38,'what does that pattern mean?',{class:'note-s','text-anchor':'end'});
+  const ar2=nb(1238,84,'All-reduce','allreduce',C.water); for(let k=0;k<8;k++) led(ar2,1250+k*9,y+64,C.water,(k*.15+.4)%1.2,true);
+  path(b,`M1334,${y+50} H1360 V${y+88} H126`,{fill:'none',stroke:C.mid,'stroke-width':1,'stroke-dasharray':'4 3','marker-end':'url(#arw)'});
+  txt(s,1226,y+92,'added back into the residual stream',{class:'note-s','text-anchor':'end'});
+  const sp=path(layers('E').p,`M110,${y+50} H1340`,{fill:'none',stroke:'none',id:'mp'+(pid++)});
+  sweeps.push(hero('E',sp,C.data,.65));
+  if(li===2) txt(s,780,760,'· · ·   layers 4 – 79, identical   · · ·',{class:'note','text-anchor':'middle'});
+});
+MV.sweeps=sweeps;
+
+/* --------------------------------------------------------- bottom band */
+band(s,60,932,'5·3','One vector becomes one token');
+{ const fn=hot(g(s),'finalnorm'); body(fn,60,952,116,46); txt(fn,118,980,'FINAL NORM',{class:'lbl-xs','text-anchor':'middle',fill:C.ink}); }
+arrow(s,'M180,975 H202',C.muted);
+{ const lh=hot(g(s),'lmhead'); body(lh,206,952,190,46); txt(lh,301,980,'LM HEAD',{class:'lbl-s','text-anchor':'middle',fill:C.ink}); txt(lh,206,1016,'12,288 → VOCABULARY',{class:'lbl-xs'}); }
+arrow(s,'M400,975 H422',C.muted);
+
+MV.bars=[]; MV.barLbl=[]; MV.barP=[];
+{ const lg=hot(g(s),'logits');
+  rect(lg,426,930,524,250,{fill:C.paper,stroke:C.mid,'stroke-width':1});
+  txt(lg,440,952,'SOFTMAX OVER THE WHOLE VOCABULARY — TOP 8',{class:'lbl-xs',fill:C.ink});
+  for(let i=0;i<8;i++){ const x=440+i*63;
+    MV.bars.push(rect(lg,x,1010,46,120,{fill:C.mid,class:'bar',style:'transform:scaleY(0.02)'}));
+    MV.barP.push(txt(lg,x+23,1002,'',{class:'lbl-xs','text-anchor':'middle',fill:C.ink}));
+    MV.barLbl.push(txt(lg,x+23,1148,'',{class:'lbl-xs','text-anchor':'middle'}));
+  }
+  line(lg,436,1130,940,1130,{stroke:C.mid,'stroke-width':1});
+  txt(lg,440,1170,'the long tail is nearly zero',{class:'note-s'});
+}
+arrow(s,'M954,975 H976',C.muted);
+{ const sm=hot(g(s),'sampler'); body(sm,980,952,142,46); txt(sm,1051,980,'SAMPLE',{class:'lbl-s','text-anchor':'middle',fill:C.ink});
+  MV.samp=txt(sm,980,1016,'',{class:'lbl-xs'}); }
+arrow(s,'M1126,975 H1148',C.muted);
+
+{ const nt=hot(g(s),'nexttoken');
+  rect(nt,1152,930,348,120,{fill:C.tT,stroke:C.token,'stroke-width':1.6});
+  txt(nt,1166,954,'THE NEXT TOKEN',{class:'lbl-xs',fill:C.token});
+  MV.next=txt(nt,1326,1010,'',{class:'fig-ttl','text-anchor':'middle',fill:C.token,style:'font-size:34px'});
+  txt(nt,1166,1072,'ONE PASS OF EIGHTY LAYERS ≈ 30 ms',{class:'lbl-xs'});
+}
+{ const gs2=hot(g(s),'loop');
+  rect(gs2,980,1092,520,116,{fill:C.paper,stroke:C.mid,'stroke-width':1,'stroke-dasharray':'5 4'});
+  txt(gs2,994,1114,'THE ANSWER, STREAMING BACK TO YOU',{class:'lbl-xs',fill:C.ink});
+  const fo=el('foreignObject',{x:992,y:1120,width:496,height:82,'pointer-events':'none'},gs2);
+  const d=document.createElement('div'); d.setAttribute('xmlns','http://www.w3.org/1999/xhtml');
+  d.style.cssText='font-family:var(--serif-body);font-size:18px;line-height:1.42;color:var(--c-token);overflow:hidden';
+  fo.appendChild(d); MV.answer=d;
+}
+path(b,'M1500,1150 H1540 V240 H1046',{fill:'none',stroke:C.token,'stroke-width':1.2,'stroke-opacity':.55,'stroke-dasharray':'6 5','marker-end':'url(#arwT)'});
+const P_LOOP=conduit('E','M1500,1150 H1540 V240 H1046',C.token,{w:0,n:4,dur:6,r:2.6});
+txt(s,1588,700,'append the token, run the stack again',{class:'note-s',transform:'rotate(90 1588 700)','text-anchor':'middle'});
+MV.loopHero=hero('E',P_LOOP,C.token,1.6);
+}
+</script>
+
+<script>
+/* ======================================================================
+   The marginalia — one note for every part
+   ====================================================================== */
+const TAGS={water:['Water','var(--c-water)'],power:['Electricity','var(--c-power)'],data:['Your prompt','var(--c-data)'],
+            heat:['Heat','var(--c-heat)'],compute:['Compute','var(--c-token)'],net:['Network','var(--c-data)'],model:['Model','var(--c-token)']};
+const INFO={
+ user:{tag:'data',t:'Your device',r:'Where the prompt begins',d:'You type a question. The app wraps it in an HTTPS request, your device encrypts it, and it leaves over Wi-Fi or cellular towards the internet backbone.',f:['A few kilobytes leave; thousands of tokens may come back','Round trip to a distant data center: 30–150 ms','The answer arrives as a stream, one token at a time']},
+ router:{tag:'net',t:'Home router',r:'The first hop of many',d:'Your router hands the packet to the ISP, which passes it up through regional aggregation onto the public internet. Nothing here understands the question — only the destination address.',f:['Wi-Fi to fibre in one box','Typically 5–15 hops in total']},
+ fiber:{tag:'net',t:'Long-haul fibre',r:'Carries the request as pulses of light',d:'Glass strands thinner than a hair carry dozens of wavelengths at once. Routers along the way read the destination and hand the packet on until it reaches the data center’s carriers.',f:['One fibre pair: tens of Tb/s','Light in glass: ~200,000 km/s','The answer comes home the same way']},
+ gas:{tag:'power',t:'Gas turbine plant',r:'Power that runs at three in the morning',d:'Natural gas burns in turbines that spin generators. Because it can run whenever asked, it supplies the always-on share of the load, with renewables layered on top.',f:['300–800 MW per plant','Generator voltage ~20 kV','A 100 MW campus is a small city’s worth of demand']},
+ wind:{tag:'power',t:'Wind farm',r:'Contracted years in advance',d:'Operators sign power purchase agreements so that, over a year, they buy as much renewable energy as they consume. The electrons still arrive over the shared grid.',f:['3–6 MW per turbine','Best sites now matched hour by hour']},
+ solar:{tag:'power',t:'Solar farm',r:'Cheap at noon, nothing at midnight',d:'Solar is the cheapest energy ever built while the sun is up. Batteries and the grid fill the gaps, because the building never turns off.',f:['Capacity factor 20–30 %','Almost always paired with storage']},
+ battery:{tag:'power',t:'Grid batteries',r:'Move midday electricity into the evening',d:'Container-sized lithium packs charge on the solar surplus and discharge at peak. They also smooth the second-by-second swings a large AI cluster creates when a training job starts or stops.',f:['2–4 hours of storage is typical','A synchronised GPU cluster can swing tens of MW in seconds']},
+ stepup:{tag:'power',t:'Step-up transformer',r:'Raises voltage so the wire stops wasting power',d:'Loss in a conductor grows with the square of the current, so the grid pushes voltage up — and current down — before sending power any distance.',f:['20 kV → 230–500 kV','Ten times the voltage, a hundredth of the loss']},
+ towers:{tag:'power',t:'Transmission lines',r:'Hundreds of kilometres of steel and aluminium',d:'High-voltage lines connect generation to demand. A large AI campus often needs new lines built for it alone, which has become the slowest part of building one.',f:['230–500 kV AC','2–6 % lost end to end','Permitting outlasts construction']},
+ reservoir:{tag:'water',t:'River or reservoir',r:'Where the cooling water starts',d:'Rivers, reservoirs, groundwater or reclaimed municipal water. Evaporative cooling consumes the most; the closed liquid loop in this building loses very little.',f:['Evaporative sites: 1–5 million litres a day','Closed loops: a small fraction of that','Water use is now reported next to energy use']},
+ intake:{tag:'water',t:'Intake and pumps',r:'Screens, then pressure',d:'A screen keeps fish, weed and silt out. Pumps then lift the water and hold pressure across kilometres of pipe so the towers upstream stay full.',f:['A few percent of the cooling energy budget']},
+ pump:{tag:'water',t:'Pumping station',r:'Pressurises the supply main',d:'Pumps move water uphill and through kilometres of pipe to the site, keeping enough pressure for the cooling towers to draw on.',f:['Runs continuously, sized for peak summer load']},
+ treatment:{tag:'water',t:'Treatment',r:'So the water does not eat the plant',d:'Filtration removes silt, softening removes the minerals that would scale the pipes, and biocide dosing keeps Legionella and biofilm out of the towers.',f:['Towers concentrate minerals as water evaporates','Some water is periodically blown down and replaced']},
+ tank:{tag:'water',t:'Buffer tank',r:'A day in hand',d:'Stored make-up water lets the site ride through a mains interruption without shedding load — the same logic as the fuel tanks next to the generators.',f:['Sized for roughly 24 hours of evaporation']},
+ meetme:{tag:'net',t:'Meet-me room',r:'Where the outside fibre ends',d:'Each carrier’s fibre terminates on patch panels here. Edge routers scrub attacks, complete the TLS handshake and pass legitimate requests to the internal network.',f:['Several carriers, on physically separate routes','The first place in the building that sees your bytes']},
+ switchgear:{tag:'power',t:'Medium-voltage switchgear',r:'The building’s main breaker',d:'Takes the 34.5 kV feed, protects against faults and meters consumption. If the utility drops, it transfers the load to the generators.',f:['Two feeds, automatic transfer','Arc-flash rated, operated remotely']},
+ ups:{tag:'power',t:'UPS and batteries',r:'Bridges ten seconds of darkness',d:'The UPS cleans incoming power and, when the grid fails, its batteries carry the whole hall for the few seconds the generators need to start and take load.',f:['5–10 minutes of runtime','Replaced roughly every decade','Some training halls deliberately skip it']},
+ pduroom:{tag:'power',t:'Transformers',r:'Down to the voltage a rack can use',d:'Step-down transformers convert 34.5 kV to 415 V three-phase, then panels feed the overhead busways in each hall.',f:['34.5 kV → 415 V','Independent A and B paths, all the way to the server']},
+ gen:{tag:'power',t:'Backup generators',r:'Keeps the site alive without the grid',d:'Diesel or gas sets start within seconds and can run for days on stored fuel. They are tested monthly and almost never needed in anger.',f:['On load in under 10 s','48–72 hours of fuel on site','Sized for the entire building']},
+ coolingtower:{tag:'heat',t:'Cooling towers',r:'Give the heat to the sky',d:'Warm facility water trickles over fill while fans pull air through it. A little of it evaporates, and that is what actually carries the heat away — and what consumes the water.',f:['~1.1 kW rejected per kW of IT load','1–2 % of the flow evaporates each pass','A cold climate can skip the chillers most of the year']},
+ chillers:{tag:'heat',t:'Chillers',r:'Only on the hot days',d:'A refrigeration cycle chills the facility water when outside air is too warm for the towers alone. Liquid-cooled halls run warm enough that this is a part-time job.',f:['Facility water at 18–25 °C','The single largest overhead in cooling energy']},
+ cdu:{tag:'water',t:'Coolant distribution unit',r:'Two loops that never touch',d:'A heat exchanger moves heat from the clean technology loop — the one that touches the GPUs — into the facility loop. Pumps push coolant to the racks; sensors watch pressure and hunt for leaks.',f:['Supply ~25 °C, return ~45 °C','One unit per row, or one per rack','Treated coolant with corrosion inhibitors']},
+ spine:{tag:'net',t:'Spine switches',r:'Choose which rack answers you',d:'A leaf-spine fabric lets any rack reach any other at full speed. A load balancer picks a server with free capacity, and your packet is forwarded to that rack’s top-of-rack switch.',f:['400 G and 800 G ports','A front-end network for users, a separate back-end fabric for GPU-to-GPU traffic','Microseconds per hop']},
+ busway:{tag:'power',t:'Overhead busway',r:'A copper rail above the row',d:'Rather than run thick cable to every cabinet, a rigid busway runs the length of the row and each rack taps in with a plug-in box.',f:['415 V three-phase','An A busway and a B busway, on separate paths']},
+ pdu:{tag:'power',t:'Power distribution unit',r:'Feeds one row',d:'Breakers per row and metering per circuit. Two units feed every rack, so a single failure never takes a server down.',f:['Metered to the watt for billing and capacity planning']},
+ fanwall:{tag:'heat',t:'Fan wall',r:'For the heat liquid cannot reach',d:'Even in a liquid-cooled hall, memory, NICs and drives still shed heat into the air. Fan walls draw hot-aisle air through coils and return it cold.',f:['20–30 % of the heat is still moved by air','Speed follows the hall temperature']},
+ coldaisle:{tag:'heat',t:'Cold aisle containment',r:'Stops supply air mixing with exhaust',d:'Racks face one another so their intakes share a sealed aisle. Doors and a roof keep the cold air where it is useful, which lets the whole hall run warmer.',f:['Supply air about 22 °C','Containment cuts fan energy dramatically']},
+ hotaisle:{tag:'heat',t:'Hot aisle',r:'Where the exhaust collects',d:'Server fans push warm air out of the back of each cabinet, and the fan wall draws it back through the cooling coils.',f:['Exhaust 35–45 °C']},
+ techloop:{tag:'water',t:'Technology loop',r:'Coolant pipes under the floor',d:'Supply and return mains run beneath the raised floor with a tap for every rack. Quick-disconnect couplings let a cabinet be pulled without draining the loop.',f:['Supply 25 °C, return 45 °C','Roughly a litre a second per rack']},
+ rack:{tag:'compute',t:'A rack',r:'One of thirty-two in this hall',d:'Every cabinet here is the same: switches on top, four GPU servers, power and coolant from below. Your request could have landed in any of them — the load balancer chose B-14.',f:['32 racks × 32 GPUs = 1,024 GPUs in this hall','About 40 kW each']},
+ rack14:{tag:'compute',t:'Rack B-14',r:'The cabinet your prompt was sent to',d:'A 42U cabinet in row B. Two top-of-rack switches, four eight-GPU servers, power strips down both sides and a coolant manifold at the back. Figure III opens it up.',f:['32 GPUs, about 40 kW','Cold plates for the GPUs, air for everything else','Fibre uplinks to the spine overhead']},
+ tor:{tag:'net',t:'Top-of-rack switch',r:'The last hop before the server',d:'Every server’s NICs plug into these two switches, which uplink to the spine. There are two so that a failure never isolates the cabinet.',f:['32 × 400 G ports each','About a microsecond to forward a packet','Your answer leaves the same way it arrived']},
+ mgmt:{tag:'net',t:'Management switch',r:'Out-of-band control',d:'A slow, separate network lets operators reboot a node, update firmware and read sensors even when the main network is down.',f:['1 G to each server’s baseboard controller']},
+ rackpdu:{tag:'power',t:'Rack power strips',r:'Two independent cords per server',d:'Vertical strips on both sides take 415 V three-phase from the busway and give every node an A and a B feed.',f:['60 A per phase','Per-outlet metering and remote switching']},
+ manifold:{tag:'water',t:'Coolant manifold',r:'Feeds every node in the cabinet',d:'Supply and return pipes run up the back of the rack with quick-disconnects at each node. Inside the server the coolant reaches the cold plates on the GPUs.',f:['25 °C in, 45 °C out','About a kilowatt of heat carried away per GPU']},
+ server:{tag:'compute',t:'GPU server',r:'An identical node, other people’s requests',d:'Each of the four nodes runs the same model for different users, or a different model entirely. Nothing about it is special until the load balancer picks it.',f:['8 GPUs, 2 CPUs, about 10 kW']},
+ server2:{tag:'compute',t:'GPU server 2',r:'The node running your prompt',d:'An 8U chassis holding eight GPUs on one board, two CPUs, two terabytes of memory and eight 400 G NICs. The eight GPUs together hold one copy of the model. Figure IV takes the lid off.',f:['About 10 kW at full tilt','Fans and drives at the front; NICs, power and coolant at the back','Serves many users at once by batching them together']},
+ blank:{tag:'compute',t:'Blanking panels',r:'Empty space, kept sealed',d:'Unused units are blanked off so cold air cannot short-circuit from the cold aisle straight into the hot aisle without passing through a server.',f:['The cheapest efficiency measure in the building']},
+ cpu:{tag:'compute',t:'CPUs',r:'The conductor, not the orchestra',d:'The CPUs run the serving software: tokenising your text, scheduling requests into batches, managing memory and launching work on the GPUs. Almost none of the arithmetic happens here.',f:['64–128 cores each','Tokeniser and sampler run on this side','Talks to the GPUs over PCIe']},
+ dram:{tag:'compute',t:'System memory',r:'Staging area for the weights',d:'Model weights are read from disk into DRAM and copied into GPU memory once at startup. During serving it holds request queues and any KV cache that spills.',f:['About 2 TB per node','Far larger than HBM, and far slower']},
+ pcie:{tag:'net',t:'PCIe switches',r:'Wire the NICs to the GPUs',d:'PCIe Gen 5 links carry your tokens from the NIC straight into GPU memory without the CPU ever touching them.',f:['64 GB/s each way per ×16 link','GPUDirect skips the copy through system memory']},
+ psu:{tag:'power',t:'Power supplies',r:'415 V down to under a volt',d:'Four supplies — three needed, one spare — turn 415 V AC into 54 V DC. Regulators beside each GPU take that below one volt at over a thousand amps.',f:['About 95 % efficient','Nearly all ten kilowatts leaves again as heat']},
+ nvswitch:{tag:'net',t:'NVLink fabric',r:'Makes eight chips behave like one',d:'Every layer is split across the eight GPUs. After each attention and MLP block they exchange partial results over NVLink, which is far faster than PCIe or Ethernet.',f:['900 GB/s per GPU, any to any','Two exchanges per layer — about 160 per token','A few microseconds each']},
+ gpu:{tag:'compute',t:'GPU',r:'Holds one eighth of the model',d:'All eight are identical. Each stores a slice of every weight matrix and computes its slice of every layer in lockstep with the other seven.',f:['~18,000 cores','141 GB of HBM','2–4 PFLOPS at 8-bit precision']},
+ gpu6:{tag:'compute',t:'GPU 6',r:'The chip predicting your next word',d:'Your tokens arrive here from NIC 6. For every token, GPU 6 multiplies the current vector by its slice of every weight matrix in all eighty layers, synchronising with its neighbours after each block. Figure V is what that computation actually is.',f:['About 700 W, taken away by liquid','Generation is limited by memory bandwidth, not arithmetic','Dozens of users share it in one batch']},
+ hbm:{tag:'compute',t:'HBM stacks',r:'Where the weights live',d:'High-bandwidth memory is stacked in three dimensions beside the die. Every single token requires reading the whole model slice out of HBM, so its bandwidth sets how fast words appear.',f:['141 GB per GPU at about 5 TB/s','A 400-billion-parameter model in 8-bit fits across eight of them','The KV cache lives here too']},
+ coldplate:{tag:'water',t:'Cold plate',r:'Liquid, a millimetre above the silicon',d:'A copper plate with microscopic channels sits on each GPU. Coolant enters at 25 °C, leaves near 45 °C and carries away close to a kilowatt per chip — which air alone could not do.',f:['About 1 kW per GPU','What makes 40–130 kW cabinets possible']},
+ nic:{tag:'net',t:'400 G network cards',r:'The doorway into GPU memory',d:'Each GPU has its own card. It carries your request from the front-end network and, for models too large for one node, GPU-to-GPU traffic across the back-end fabric.',f:['400 Gb/s each — 3.2 Tb/s per node','RDMA writes directly into HBM']},
+ prompt:{tag:'model',t:'The prompt',r:'Your text, plus what you cannot see',d:'Before the model reads a word, the server prepends a system prompt and wraps everything in a chat template so the model knows which part is you and which part is it.',f:['System prompt: standing instructions from the provider','Chat template: role markers around every turn']},
+ tokenizer:{tag:'model',t:'Tokeniser',r:'Turns text into numbers',d:'Byte-pair encoding splits your text into common chunks — roughly three-quarters of a word each — and looks every chunk up in a fixed vocabulary. It runs on the CPU in microseconds.',f:['Vocabulary around 128,000 entries','Common words are one token; rare ones shatter into pieces']},
+ tokens:{tag:'model',t:'The sequence',r:'Every position, and what is kept for it',d:'Each chip is one position: its number, the chunk of text, and the ID that is really all the model sees. The bar above shows how strongly the token being predicted right now leans on that position. The two strips below are its cached key and value vectors — the newest position is written in red, everything before it is read back from memory.',f:['White chips: your prompt · green chips: what the model has written','Position numbers never restart — the cache is addressed by them','Context windows are measured in exactly these']},
+ embed:{tag:'model',t:'Embedding',r:'Each token becomes a long vector',d:'A lookup table turns every ID into a vector of thousands of numbers, and position information is folded in so the model knows the order of your words.',f:['Vector width around 12,000','Rotary position embeddings, applied inside attention']},
+ stats:{tag:'model',t:'The running total',r:'What this request costs',d:'Context length is everything the model must attend to. The KV cache is the memory holding it. The pass count is how many times the entire eighty-layer stack has been executed for you.',f:['One pass = one token','Cache grows with every token, for every user in the batch']},
+ layer:{tag:'model',t:'A transformer layer',r:'One of about eighty identical blocks',d:'Each layer refines every token’s vector: attention gathers context from earlier tokens, the MLP transforms it, and both results are added back into the residual stream running down the stack.',f:['Norm → attention → add → norm → MLP → add','All eighty run for every token generated','Each one split across all eight GPUs']},
+ norm:{tag:'model',t:'Normalisation',r:'Keeps the numbers civil',d:'Rescales each vector before the expensive blocks so that activations neither explode nor vanish as they pass down eighty layers.',f:['RMSNorm — a multiply and a reciprocal square root']},
+ attn:{tag:'model',t:'Self-attention',r:'Which earlier tokens matter right now?',d:'Each token forms a query; every earlier token offers a key and a value. Query-key scores decide how much to look at each, and the values are blended in those proportions. Many heads do this at once, each hunting for something different.',f:['“blue” attends hard to “sky”','64–128 heads per layer','The only place tokens are allowed to talk to each other']},
+ kvcache:{tag:'model',t:'KV cache',r:'Two vectors kept for every position',d:'When a token passes through a layer it produces three projections of its vector: a query, a key and a value. The query is used once and thrown away, but the key and the value are what every later token will ask about — so they are written to memory and never computed again. Each position in the strip above therefore holds one K and one V per layer: eighty of each, for every token, for the whole conversation.',f:['Cached: the key and value projections — not the whole layer computation','Recomputed each pass: only the newest token','Roughly 0.3 MB per token across all eighty layers','Drop the cache and every token would reprocess the entire prompt']},
+ allreduce:{tag:'net',t:'All-reduce',r:'Eight slices agree on one answer',d:'Each GPU computed a partial result from its slice of the weights. They sum their partials over NVLink so that every GPU ends the block holding the same full activation.',f:['Twice per layer, about 160 times per token','A few microseconds each','This is why NVLink bandwidth is worth paying for']},
+ mlp:{tag:'model',t:'MLP',r:'Where most of the knowledge sits',d:'The vector is projected to about four times its width, passed through a nonlinearity and squeezed back down. Roughly two-thirds of the model’s parameters live in these matrices.',f:['Up-project, SwiGLU, down-project','Every token processed independently','Most of the arithmetic per token']},
+ finalnorm:{tag:'model',t:'Final normalisation',r:'One last tidy',d:'The vector for the newest position is normalised a final time before it is turned into scores.',f:[]},
+ lmhead:{tag:'model',t:'Language-model head',r:'A score for every possible token',d:'One last matrix multiplies the vector into a score for every entry in the vocabulary. Higher means “more likely to come next”.',f:['12,288 numbers in, ~128,000 out','Often shares its weights with the embedding table']},
+ logits:{tag:'model',t:'Logits and probabilities',r:'The model’s ranked guesses',d:'Softmax turns raw scores into probabilities that sum to one. Only the leading few carry real weight; the rest of the vocabulary is a rounding error.',f:['Temperature flattens or sharpens the curve','Top-p keeps only the most probable mass']},
+ sampler:{tag:'model',t:'Sampling',r:'Picks one, then commits to it',d:'Rather than always taking the top guess, the server draws at random in proportion to probability. That is why the same question can be answered slightly differently twice.',f:['Temperature 0 always takes the leader','Runs back on the CPU, in microseconds']},
+ nexttoken:{tag:'model',t:'The next token',r:'The entire output of one pass',d:'Eighty layers, hundreds of matrix multiplications, sixteen gigabytes of weights read out of memory, twenty megawatts of building — for one word-piece. Then it all happens again.',f:['20–50 tokens per second per user','A 300-word answer is roughly 400 passes','Every pass reads the whole model out of HBM']},
+ loop:{tag:'model',t:'The autoregressive loop',r:'Until the model decides to stop',d:'The new token is appended and fed back in. Thanks to the KV cache only that one token needs processing. Generation ends when the model emits its end-of-turn token.',f:['Tokens stream back over the same fibre, in reverse','GPU 6 is juggling many people’s loops at once']},
+};
+</script>
+
+<script>
+/* ======================================================================
+   Zoom links between plates
+   ====================================================================== */
+function zoomLink(x1,yA,yB,x2,yC,yD){
+  el('polygon',{points:`${x1},${yA} ${x2},${yC} ${x2},${yD} ${x1},${yB}`,fill:'var(--t-data)',
+    stroke:C.data,'stroke-opacity':.3,'stroke-width':1,'stroke-dasharray':'7 6','vector-effect':'non-scaling-stroke'},L.bg);
+}
+zoomLink(3334, 840, 952,  3720, 180, 1340);
+zoomLink(4312, 584, 776,  4580, 210, 1300);
+zoomLink(5470, 750, 890,  5880, 190, 1310);
+
+/* ======================================================================
+   Camera
+   ====================================================================== */
+const cam={x:0,y:0,s:1};
+function apply(){ world.setAttribute('transform',`translate(${cam.x} ${cam.y}) scale(${cam.s})`); $('zoomlvl').textContent=Math.round(cam.s*100)+'%'; }
+const wide=()=>innerWidth>860;
+function viewport(){
+  const padL=wide()?212:0, padT=62, padB=wide()?86:150;
+  return {x:padL,y:padT,w:Math.max(260,innerWidth-padL),h:Math.max(200,innerHeight-padT-padB)};
+}
+let flyReq=null;
+function flyTo(target,ms=1000){
+  if(flyReq) cancelAnimationFrame(flyReq);
+  const v=viewport(), mx=v.x+v.w/2, my=v.y+v.h/2;
+  if(REDUCED||ms===0){ Object.assign(cam,target); apply(); return; }
+  const c0={x:(mx-cam.x)/cam.s,y:(my-cam.y)/cam.s}, c1={x:(mx-target.x)/target.s,y:(my-target.y)/target.s};
+  const s0=Math.log(cam.s), s1=Math.log(target.s), t0=performance.now();
+  const step=now=>{ let t=Math.min(1,(now-t0)/ms); t=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+    const s=Math.exp(s0+(s1-s0)*t), cx=c0.x+(c1.x-c0.x)*t, cy=c0.y+(c1.y-c0.y)*t;
+    cam.s=s; cam.x=mx-cx*s; cam.y=my-cy*s; apply(); if(t<1) flyReq=requestAnimationFrame(step); };
+  flyReq=requestAnimationFrame(step);
+}
+function fit(bx,by,bw,bh,pad=.06,ms=1000){
+  const v=viewport();
+  const s=Math.max(.02,Math.min(14,Math.min(v.w/(bw*(1+2*pad)), v.h/(bh*(1+2*pad)))));
+  flyTo({s, x:v.x+v.w/2-(bx+bw/2)*s, y:v.y+v.h/2-(by+bh/2)*s}, ms);
+}
+let curStage='all', userMoved=false;
+function fitFrame(k,ms){ curStage=k; if(k==='all') return fit(WORLD.x,WORLD.y,WORLD.w,WORLD.h,.02,ms); const f=F[k]; fit(f.x,f.y,f.w,f.h,.03,ms); }
+function zoomAt(f,cx,cy){ userMoved=true; const s=Math.min(14,Math.max(.05,cam.s*f)); const k=s/cam.s; cam.x=cx-(cx-cam.x)*k; cam.y=cy-(cy-cam.y)*k; cam.s=s; apply(); }
+
+svg.addEventListener('wheel',e=>{ e.preventDefault(); zoomAt(Math.exp(-e.deltaY*0.0016),e.clientX,e.clientY); },{passive:false});
+const ptrs=new Map(); let dragging=false, moved=0, last=null, pinchD=0;
+svg.addEventListener('pointerdown',e=>{ svg.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  last={x:e.clientX,y:e.clientY}; moved=0; dragging=true; svg.classList.add('dragging');
+  if(ptrs.size===2){ const [a,b2]=[...ptrs.values()]; pinchD=Math.hypot(a.x-b2.x,a.y-b2.y); } });
+svg.addEventListener('pointermove',e=>{ if(!dragging) return; ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size===2){ const [a,b2]=[...ptrs.values()]; const d=Math.hypot(a.x-b2.x,a.y-b2.y);
+    const mx=(a.x+b2.x)/2,my=(a.y+b2.y)/2; if(pinchD) zoomAt(d/pinchD,mx,my); pinchD=d;
+    if(last){cam.x+=mx-last.x;cam.y+=my-last.y;} last={x:mx,y:my}; apply(); return; }
+  const dx=e.clientX-last.x, dy=e.clientY-last.y; moved+=Math.abs(dx)+Math.abs(dy);
+  cam.x+=dx; cam.y+=dy; last={x:e.clientX,y:e.clientY}; userMoved=true; apply(); });
+const endPtr=e=>{ ptrs.delete(e.pointerId); if(!ptrs.size){ dragging=false; svg.classList.remove('dragging'); }
+  else { const [a]=[...ptrs.values()]; last={x:a.x,y:a.y}; pinchD=0; } };
+svg.addEventListener('pointerup',endPtr); svg.addEventListener('pointercancel',endPtr);
+$('zin').onclick=()=>{ const v=viewport(); zoomAt(1.45,v.x+v.w/2,v.y+v.h/2); };
+$('zout').onclick=()=>{ const v=viewport(); zoomAt(1/1.45,v.x+v.w/2,v.y+v.h/2); };
+$('zfit').onclick=()=>{ setStage('all'); };
+function setStage(k){ stopTrace(); userMoved=false; fitFrame(k); document.querySelectorAll('#rail button').forEach(x=>x.classList.toggle('on',x.dataset.stage===k)); }
+document.querySelectorAll('#rail button').forEach(b2=>b2.onclick=()=>setStage(b2.dataset.stage));
+let rzT=null;
+addEventListener('resize',()=>{ apply(); clearTimeout(rzT);
+  rzT=setTimeout(()=>{ if(!userMoved&&traceI<0) fitFrame(curStage,0); },160); });
+
+/* ======================================================================
+   Hover and pin
+   ====================================================================== */
+const info=$('info'), hil=$('hilite'); let pinned=null, hideT=null;
+function worldBBox(e){
+  const bb=e.getBBox(); const m=world.getCTM().inverse().multiply(e.getCTM());
+  const p=(x,y)=>{ const pt=svg.createSVGPoint(); pt.x=x; pt.y=y; return pt.matrixTransform(m); };
+  const a=p(bb.x,bb.y), b2=p(bb.x+bb.width,bb.y+bb.height);
+  return {x:a.x,y:a.y,w:b2.x-a.x,h:b2.y-a.y};
+}
+function showInfo(e){
+  const id=e.getAttribute('data-info'), d=INFO[id]; if(!d) return; clearTimeout(hideT);
+  const [tn,tc]=TAGS[d.tag];
+  info.querySelector('.tag i').style.background=tc;
+  info.querySelector('.tag span').textContent=tn;
+  info.querySelector('h3').textContent=d.t;
+  info.querySelector('.role').textContent=d.r;
+  info.querySelector('.desc').textContent=d.d;
+  info.querySelector('.facts').innerHTML=(d.f||[]).map(x=>`<li>${x}</li>`).join('');
+  info.querySelector('.pin').textContent=pinned?'Pinned — click again or press Esc':'Click to pin this note';
+  info.hidden=false;
+  const bb=worldBBox(e);
+  hil.setAttribute('x',bb.x-5); hil.setAttribute('y',bb.y-5);
+  hil.setAttribute('width',bb.w+10); hil.setAttribute('height',bb.h+10);
+  hil.setAttribute('opacity',1);
+}
+function hideInfo(){ if(pinned) return; hideT=setTimeout(()=>{ info.hidden=true; hil.setAttribute('opacity',0); },90); }
+svg.addEventListener('pointerover',e=>{ if(pinned||dragging) return; const t=e.target.closest('.hot'); if(t) showInfo(t); });
+svg.addEventListener('pointerout',e=>{ if(pinned) return; const t=e.target.closest('.hot'); if(t) hideInfo(); });
+svg.addEventListener('click',e=>{ if(moved>6) return; const t=e.target.closest('.hot');
+  if(!t){ pinned=null; hideInfo(); return; }
+  if(pinned===t){ pinned=null; showInfo(t); } else { pinned=null; pinned=t; showInfo(t); } });
+info.querySelector('.close').onclick=()=>{ pinned=null; info.hidden=true; hil.setAttribute('opacity',0); };
+addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'){ return; }
+  if(e.key==='+'||e.key==='=') $('zin').click();
+  if(e.key==='-') $('zout').click();
+  if(e.key==='0') $('zfit').click();
+  if(e.key==='ArrowRight'&&traceI>=0) $('capNext').click();
+  if(e.key==='ArrowLeft'&&traceI>=0) $('capPrev').click();
+  if(e.key==='Escape'){ pinned=null; info.hidden=true; hil.setAttribute('opacity',0); stopTrace(); }
+});
+</script>
+
+<script>
+/* ======================================================================
+   A very small language model, running in your browser.
+
+   The plate above describes what a real transformer does. Nothing that
+   size fits in a web page, so the numbers you see are produced by an
+   honest miniature: a byte-pair-ish tokeniser over a vocabulary built
+   from the corpus below, and a trigram/bigram model with a topic term
+   that leans on the words of your prompt. The same shape, six orders of
+   magnitude less of it.
+   ====================================================================== */
+const CORPUS = `
+Why is the sky blue? The sky looks blue because sunlight is scattered by the molecules of the air, and short blue wavelengths scatter far more strongly than long red ones. Sunlight arrives as a mixture of every colour. When it meets the tiny molecules of nitrogen and oxygen in the atmosphere, the light is scattered in all directions. The amount of scattering rises sharply as the wavelength gets shorter, so blue light bounces around the sky many times before it reaches your eye, while red light travels almost straight through. Our eyes are more sensitive to blue than to violet, and some violet is absorbed high in the atmosphere, so the sky settles on a deep blue.
+
+Why are sunsets red? At sunset the light has to pass through much more air to reach you, so almost all of the blue has been scattered out of the beam long before it arrives. What is left is the red and orange end of the spectrum, which is why the sun looks warm and heavy near the horizon. Dust and smoke make the effect stronger. The same physics explains why the sky near the horizon looks pale: the light has been scattered so many times that the colours mix back towards white.
+
+Why is the ocean blue? The ocean is blue partly because it reflects the sky and partly because water itself absorbs red light more strongly than blue. In a deep clear sea the red has been absorbed within the first few metres, so the light that comes back to your eye is blue. Shallow water over pale sand looks turquoise. Water full of plankton looks green, because the plankton absorb blue and red and reflect the green in between.
+
+Why do we have seasons? The seasons come from the tilt of the Earth, not from its distance to the sun. The axis leans by about twenty three degrees, so for half of the year one hemisphere leans towards the sun and receives its light at a steeper angle and for longer each day. Steeper light means more energy per square metre of ground, and longer days mean more hours to collect it. That is summer. Six months later the same hemisphere leans away and gets the same light spread thin across a wider patch of ground, which is winter.
+
+Why does it rain? Rain begins when warm air carrying water vapour rises and cools. Cold air can hold less water than warm air, so the vapour condenses onto tiny particles of dust and salt and forms droplets. Millions of droplets make a cloud. When the droplets collide and merge they grow heavy enough that the rising air can no longer hold them up, and they fall. The water cycle keeps repeating: the sun evaporates water from the ocean, the wind carries the vapour over land, the land cools it into rain, and rivers carry it back to the sea.
+
+Why is the sea salty? Rain is slightly acidic, and over millions of years it has dissolved minerals out of rock and carried them down rivers into the ocean. Water leaves the ocean by evaporation, but the salt stays behind, so the concentration slowly climbs and then settles where new salt arriving balances salt locked away in sediment.
+
+Why do we sleep? Sleep is when the brain does its maintenance. Memories from the day are replayed and consolidated, waste products that build up between the cells are flushed away, and the body repairs tissue and regulates its hormones. Losing sleep degrades attention and mood long before you notice it, because the parts of the brain that judge how tired you are get tired too.
+
+Why do leaves change colour in autumn? Leaves are green because of chlorophyll, the pigment that captures light for photosynthesis. As the days shorten the tree stops making it, and the chlorophyll breaks down. The yellow and orange pigments were there all along, hidden under the green, and now they show. Some trees make new red pigments as they drain the last useful sugars out of the leaf before letting it fall.
+
+How does an aeroplane fly? A wing is shaped and angled so that it pushes air downwards as it moves forward. Pushing air down means the air pushes the wing up by exactly as much, and when that upward force exceeds the weight of the aircraft it climbs. Engines do not lift the plane; they only keep it moving fast enough that the wing can.
+
+Why does bread rise? Yeast eats the sugars in the flour and gives off carbon dioxide. The gluten in the dough forms an elastic net that traps the gas in thousands of small bubbles, so the dough swells. Heat in the oven makes the trapped gas expand faster, sets the protein and turns the outside brown.
+
+Why does coffee keep you awake? A chemical called adenosine builds up in the brain through the day and makes you feel sleepy. Caffeine has a similar shape, so it sits in the same receptors without switching them on, and the sleepiness signal cannot get through. The adenosine keeps accumulating in the background, which is why the tiredness arrives all at once when the caffeine wears off.
+
+How does the internet work? The internet is a network of networks that agree on how to pass small packets of data. Your message is chopped into packets, each stamped with a destination address. Routers read the address and pass each packet towards the destination, one hop at a time, over copper, fibre and radio. The packets can take different routes and arrive out of order, and the receiving computer puts them back together.
+
+What is electricity? Electricity is the flow of charge through a conductor. A generator spins a magnet past coils of wire and pushes electrons back and forth; the grid carries that motion across the country at high voltage, because high voltage means low current and low current means very little energy lost as heat in the wires. Transformers step the voltage up for the journey and down again at the other end.
+
+How does a computer work? A computer stores numbers in memory and follows a list of instructions that say how to move and combine them. Everything else is built on top of that. Text, images, sound and models are all numbers. The processor fetches an instruction, decodes it, does the arithmetic and writes the answer back, billions of times a second.
+
+What is a data center? A data center is a building designed to keep computers powered and cool. Electricity arrives from a substation, passes switchgear and batteries and transformers, and reaches racks of servers over overhead busways. Nearly all of that energy leaves again as heat, which water carries out to the cooling towers in the yard outside.
+
+How does a language model work? A language model reads text as a list of tokens and predicts the next one. The text is split by a tokeniser into common chunks, each chunk becomes a vector of numbers, and the vectors pass through a stack of transformer layers. In every layer attention lets each token gather information from earlier tokens, and a feed forward network transforms the result. At the end the model produces a score for every token in its vocabulary, the scores are turned into probabilities, and one token is chosen. Then the whole process runs again with that token appended. There is no plan and no draft: the answer is built one piece at a time, and the model reads everything it has already written before choosing what comes next.
+
+What is attention? Attention is the part of the model where tokens are allowed to look at one another. Each token forms a query, every earlier token offers a key, and the match between them decides how much of that token value is mixed in. Many heads do this at the same time, each looking for a different kind of relationship, and the results are added back into the stream of numbers that runs down the stack.
+
+Why do models make things up? A model is trained to produce plausible continuations, not to check facts. When it does not know something, the most plausible looking continuation is still a fluent sentence, so it writes one. Nothing in the machinery marks the difference between a fact it has seen a thousand times and a shape that merely looks right.
+
+Why is training so expensive? Training reads an enormous amount of text and adjusts billions of numbers a tiny amount for each batch, over and over, for weeks. Every adjustment needs the whole model in memory, so the work is spread across thousands of chips that must talk to each other constantly. The cost is dominated by the energy and by the time the machines are held out of ordinary use.
+
+What is a token? A token is a chunk of text, usually part of a word. Common words are a single token, rare words are broken into several, and a space at the front of a word belongs to the token. The model never sees letters, only the identity numbers of these chunks, which is why counting characters is oddly hard for it.
+
+Why does the moon change shape? The moon does not change shape; we see a different part of its lit half as it moves around the Earth. Half of the moon is always in sunlight. When it sits between us and the sun we see the dark side, and when it is on the far side we see the whole lit face.
+
+Why is the grass green? Grass is green because chlorophyll absorbs red and blue light to drive photosynthesis and reflects the green light in between. The plant is using the parts of sunlight that carry the most useful energy and throwing away the middle of the spectrum, which is the part our eyes are most sensitive to.
+
+Why do we dream? Dreams seem to come from the brain replaying and recombining the day while the parts that check for consistency are quiet. That is why a dream can feel entirely reasonable while it is happening and absurd the moment you wake up.
+
+How do batteries work? A battery holds two materials that would react if they could, separated so that the only path for the electrons is the circuit outside. When you close the circuit the reaction proceeds and pushes electrons through your device. Charging drives the reaction backwards and stores the energy again.
+
+Why does the wind blow? Wind is air moving from high pressure to low pressure. The sun heats the ground unevenly, warm air rises and leaves lower pressure behind, and cooler heavier air flows in to replace it. The spin of the Earth bends those flows into the great circling patterns that carry weather around the planet.
+
+What happens when you ask a question? The words leave your device as encrypted packets, travel over fibre to a data center, and land on a server holding a model. The text is tokenised, the tokens become vectors, the stack of layers runs once for every new token, and the answer streams back to you as it is produced. Water and electricity are being consumed the entire time, which is why the building around the chip is as much a part of the answer as the chip is.
+`;
+
+/* ----------------------------------------------------------- tokeniser */
+const pieces=text=>text.match(/\s?[A-Za-z]+|\s?\d+|\s?[^\sA-Za-z0-9]|\s+/g)||[];
+const VOCAB=new Map();
+function addTok(t){ if(t&&!VOCAB.has(t)) VOCAB.set(t,200+VOCAB.size); }
+(function buildVocab(){
+  const freq=new Map();
+  for(const p of pieces(CORPUS)){ if(/^\s+$/.test(p)) continue; freq.set(p,(freq.get(p)||0)+1); }
+  const words=[...freq.entries()].sort((a,b)=>b[1]-a[1]);
+  words.forEach(e=>addTok(e[0]));
+  /* subword pieces, so an unseen word breaks into chunks rather than letters */
+  const sub=new Map();
+  for(const [w,n] of words){
+    const bare=w.replace(/^ /,''); if(!/^[A-Za-z]+$/.test(bare)) continue;
+    for(let L=2;L<=7;L++) for(let i=0;i+L<=bare.length;i++){
+      const c=bare.slice(i,i+L);
+      sub.set(c,(sub.get(c)||0)+n*(i===0?1.6:1));
+    }
+  }
+  [...sub.entries()].filter(e=>e[1]>=3).sort((a,b)=>b[1]*b[0].length-a[1]*a[0].length)
+    .slice(0,1500).forEach(e=>{ addTok(e[0]); addTok(' '+e[0]); });
+  for(const ch of 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!?;:()-/%$&*+=<>'){ addTok(ch); addTok(' '+ch); }
+  addTok(' ');
+})();
+let MAXLEN=1; for(const t of VOCAB.keys()) if(t.length>MAXLEN) MAXLEN=t.length;
+function encode(text){
+  const out=[];
+  for(let p of pieces(text)){
+    if(/^\s+$/.test(p)) continue;
+    if(VOCAB.has(p)){ out.push(p); continue; }
+    let i=0;
+    while(i<p.length){
+      let hit=null;
+      for(let L=Math.min(MAXLEN,p.length-i); L>=1; L--){ const c=p.slice(i,i+L); if(VOCAB.has(c)){ hit=c; break; } }
+      if(!hit){ hit=p[i]; addTok(hit); }
+      out.push(hit); i+=hit.length;
+    }
+  }
+  return out;
+}
+const idOf=t=>VOCAB.get(t)||0;
+
+/* --------------------------------- counts over the corpus, orders 1 to 5 */
+const CORP=encode(CORPUS.replace(/\s+/g,' '));
+const TOTAL=CORP.length;
+const UNI=new Map(), POS=new Map(), NG=[null,null,new Map(),new Map(),new Map(),new Map()];
+const key=(a,i,k)=>a.slice(i-k,i).join('');
+CORP.forEach((t,i)=>{
+  UNI.set(t,(UNI.get(t)||0)+1);
+  if(!POS.has(t)) POS.set(t,[]);
+  const arr=POS.get(t); if(arr.length<400) arr.push(i);
+  for(let k=1;k<=4;k++){
+    if(i<k) continue;
+    const m=NG[k+1], kk=key(CORP,i,k);
+    if(!m.has(kk)) m.set(kk,new Map());
+    const d=m.get(kk); d.set(t,(d.get(t)||0)+1);
+  }
+});
+const STOP=new Set([...UNI.entries()].sort((a,b)=>b[1]-a[1]).slice(0,28).map(e=>e[0]));
+const isContent=t=>/[A-Za-z]{3,}/.test(t)&&!STOP.has(t);
+const posOf=t=>POS.get(t)||POS.get(' '+t.trim())||POS.get(t.trim())||[];
+
+/* the topic term: what tends to follow the content words you used */
+function topicDist(toks){
+  const d=new Map(), seen=new Set();
+  for(const t of toks){
+    if(!isContent(t)) continue;
+    const k=t.trim().toLowerCase(); if(seen.has(k)) continue; seen.add(k);
+    const ps=posOf(t), idf=Math.log(1+TOTAL/(1+(UNI.get(t)||1)));
+    for(const p of ps) for(let o=1;o<=10;o++){
+      const q=p+o; if(q>=TOTAL) break;
+      d.set(CORP[q],(d.get(CORP[q])||0)+idf/(o*o*0.25+1));
+    }
+  }
+  return d;
+}
+/* how much does each earlier token support this candidate? (the attention row) */
+function support(seq,cand){
+  const w=seq.map((t,i)=>{
+    let s=0.05+0.55*Math.exp(-(seq.length-1-i)/4);
+    if(isContent(t)){
+      let co=0; for(const p of posOf(t)) for(let o=-8;o<=8;o++){ if(o&&CORP[p+o]===cand) co++; }
+      s+=Math.min(2.2,co*0.32)*Math.log(1+TOTAL/(1+(UNI.get(t)||1)))/6;
+    }
+    return s;
+  });
+  const mx=Math.max(...w,1e-6);
+  return w.map(x=>x/mx);
+}
+const normalise=m=>{ let s=0; for(const v of m.values()) s+=v; if(!s) return m; const o=new Map(); for(const e of m) o.set(e[0],e[1]/s); return o; };
+function mix(into,src,weight){ if(!src||!src.size||weight<=0) return 0; for(const e of normalise(src)) into.set(e[0],(into.get(e[0])||0)+e[1]*weight); return weight; }
+
+/* variable-order backoff: the longest context that has ever been seen wins */
+function distribution(seq,topic,recent,lam){
+  const p=new Map(); let rest=1;
+  for(let k=4;k>=1;k--){
+    if(seq.length<k) continue;
+    const m=NG[k+1].get(key(seq,seq.length,k));
+    if(m&&m.size){ mix(p,m,rest*0.74); rest*=0.26; }
+  }
+  mix(p,UNI,rest);
+  if(topic&&topic.size&&lam){
+    const tn=normalise(topic); let mx=0; for(const v of tn.values()) if(v>mx) mx=v;
+    if(mx>0) for(const e of [...p]) p.set(e[0],e[1]*(1+lam*Math.pow((tn.get(e[0])||0)/mx,0.55)));
+  }
+  if(!recent.length) for(const e of [...p]) if(!/^ ?[A-Z]/.test(e[0])) p.set(e[0],e[1]*0.03);
+  const tailN=recent.slice(-5);
+  for(const e of [...p]){
+    if(/^\s*[?]$/.test(e[0])) p.set(e[0],e[1]*0.05);
+    if(tailN.includes(e[0])&&!/^[ ]?(the|a|of|to|and|is|in|that|it)$/.test(e[0].trim())) p.set(e[0],e[1]*0.45);
+  }
+  p.delete(seq[seq.length-1]);
+  return normalise(p);
+}
+function sampleFrom(dist,temp,topp){
+  let arr=[...dist].sort((a,b)=>b[1]-a[1]);
+  if(temp!==1){ let s=0; const inv=1/Math.max(.05,temp);
+    arr=arr.map(e=>{ const x=Math.pow(e[1],inv); s+=x; return [e[0],x]; }).map(e=>[e[0],e[1]/s]).sort((a,b)=>b[1]-a[1]); }
+  let acc=0; const keep=[];
+  for(const e of arr){ keep.push(e); acc+=e[1]; if(acc>=topp&&keep.length>=3) break; }
+  const tot=keep.reduce((a,e)=>a+e[1],0);
+  let r=Math.random()*tot;
+  for(const e of keep){ r-=e[1]; if(r<=0) return e[0]; }
+  return keep[0][0];
+}
+</script>
+
+<script>
+/* ======================================================================
+   Driving figure V with whatever you typed
+   ====================================================================== */
+const TEMP=0.72, TOPP=0.92, MAXNEW=44;
+const RUN={seq:[],plen:0,gen:[],topic:null,pass:0,weights:[],timers:[],live:false};
+const show=t=>t.replace(/^ /,'·');
+
+function clearTimers(){ RUN.timers.forEach(clearTimeout); RUN.timers=[]; }
+const later=(ms,fn)=>RUN.timers.push(setTimeout(fn,ms));
+
+function drawChips(){
+  const G=MV.chipG; while(G.firstChild) G.removeChild(G.firstChild);
+  const seq=RUN.seq, w=RUN.weights;
+  let idx=seq.map((t,i)=>i);
+  if(seq.length>22) idx=[...seq.keys()].slice(0,8).concat([-1],[...seq.keys()].slice(seq.length-13));
+  const n=idx.length, cw=Math.min(112,Math.max(28,1440/n-5));
+  idx.forEach((si,j)=>{
+    const x=60+j*(cw+5);
+    if(si<0){ txt(G,x+cw/2,364,'…',{class:'lbl','text-anchor':'middle'});
+              txt(G,x+cw/2,402,'…',{class:'lbl-xs','text-anchor':'middle'}); return; }
+    const t=seq[si], isGen=si>=RUN.plen, isLast=si===seq.length-1, a=w[si]||0;
+    if(a>0.02) rect(G,x+1,330-a*24,cw-2,a*24,{fill:C.data,opacity:.5});
+    txt(G,x+2,340,'#'+si,{class:'lbl-xs',style:'font-size:8px;letter-spacing:0'});
+    rect(G,x,344,cw,32,{fill:isGen?C.tT:C.paper,stroke:isLast?C.accent:(isGen?C.token:C.data),'stroke-width':isLast?2:1});
+    const fs=cw>64?11:(cw>44?9.5:8);
+    const max=Math.max(1,Math.floor((cw-8)/(fs*0.62)));
+    let d=show(t); if(d.length>max) d=d.slice(0,Math.max(1,max-1))+'…';
+    txt(G,x+cw/2,365,d,{class:'lbl-xs','text-anchor':'middle',fill:C.ink,style:`font-size:${fs}px;letter-spacing:0`});
+    if(cw>34) txt(G,x+cw/2,388,idOf(t),{class:'lbl-xs','text-anchor':'middle',style:'font-size:8.5px;letter-spacing:0'});
+    /* the KV cache: one key and one value vector kept for this position, in every layer */
+    const fresh=isLast&&RUN.live;
+    [0,1].forEach(k=>{
+      rect(G,x,394+k*9,cw,7,{fill:fresh?C.accent:C.token,opacity:fresh?.55:.28,stroke:C.mid,'stroke-width':.5});
+      if(cw>40) txt(G,x+3,400+k*9,k?'V':'K',{class:'lbl-xs',style:'font-size:6px;letter-spacing:0',fill:C.ink});
+    });
+  });
+}
+function setStats(){
+  const n=RUN.seq.length;
+  MV.stats.textContent=`CONTEXT ${n} TOKENS   ·   KV CACHE ${(n*0.33).toFixed(1)} MB   ·   PASS ${RUN.pass}`;
+}
+function tail(str,n){ if(str.length<=n) return str.replace(/[<>&]/g,'');
+  let t=str.slice(-n); const i=t.indexOf(' '); if(i>0&&i<14) t=t.slice(i+1);
+  return '…'+t.replace(/[<>&]/g,''); }
+function setAnswer(){
+  const s=RUN.gen.join('');
+  MV.answer.textContent=s.trim()+(RUN.live?' ▍':'');
+  const el2=$('out');
+  el2.innerHTML=(RUN.live?'generating · '+RUN.gen.length+' tokens':(RUN.gen.length?'done · '+RUN.gen.length+' tokens':'idle'))+
+    '<br><b>'+tail(s.trim(),46)+'</b>';
+}
+function setCandidates(list){
+  for(let i=0;i<8;i++){
+    const c=list[i];
+    if(!c){ MV.bars[i].style.transform='scaleY(0.02)'; MV.barLbl[i].textContent=''; MV.barP[i].textContent=''; continue; }
+    MV.bars[i].style.transform='scaleY('+Math.max(0.02,Math.min(1,c[1]))+')';
+    MV.bars[i].setAttribute('fill',i===0?C.token:C.mid);
+    let d=show(c[0]); if(d.length>7) d=d.slice(0,6)+'…';
+    MV.barLbl[i].textContent=d;
+    MV.barP[i].textContent=c[1]>=0.005?Math.round(c[1]*100)+'%':'<1%';
+  }
+}
+
+function startRun(text){
+  clearTimers();
+  const toks=encode(text.trim()||'Why is the sky blue?');
+  RUN.seq=toks.slice(0,120); RUN.plen=RUN.seq.length; RUN.gen=[]; RUN.pass=0;
+  RUN.ptoks=RUN.seq.slice(); RUN.topic=topicDist(RUN.seq); RUN.weights=[]; RUN.live=true;
+  const shown=text.trim()||'Why is the sky blue?';
+  MV.promptEcho.textContent=shown;
+  const words=shown.split(/\s+/); let l1='',l2='';
+  for(const w of words){ if((l1+' '+w).trim().length<=15&&!l2) l1=(l1+' '+w).trim();
+    else if((l2+' '+w).trim().length<=15) l2=(l2+' '+w).trim(); }
+  if(l2.length&&shown.length>l1.length+l2.length+1) l2=l2.slice(0,13)+'…';
+  DEV[0].textContent=l1; DEV[1].textContent=l2;
+  MV.samp.textContent='TEMPERATURE '+TEMP+' · TOP-P '+TOPP;
+  MV.next.textContent=''; drawChips(); setStats(); setAnswer();
+  step();
+}
+function stopRun(){ RUN.live=false; clearTimers(); setAnswer(); }
+
+function step(){
+  if(!RUN.live) return;
+  if(RUN.gen.length) RUN.topic=topicDist(RUN.ptoks.concat(RUN.gen.slice(-8)));
+  const dist=distribution(RUN.seq,RUN.topic,RUN.gen,RUN.gen.length<4?11:5);
+  const top=[...dist].sort((a,b)=>b[1]-a[1]).slice(0,8);
+  if(!top.length){ stopRun(); return; }
+  RUN.pass++;
+  const chosen=sampleFrom(dist,TEMP,TOPP);
+  const beat=REDUCED?260:190;
+
+  MV.attnCells.forEach(c=>c.style.animationDuration=(1.1+Math.random()*1.4)+'s');
+  if(!REDUCED) MV.sweeps.forEach((sw,i)=>later(80+i*beat,()=>sw.play()));
+
+  later(REDUCED?0:beat*4.4,()=>{
+    RUN.weights=support(RUN.seq,top[0][0]); drawChips();
+  });
+  later(REDUCED?20:beat*5.6,()=>setCandidates(top));
+  later(REDUCED?40:beat*7.4,()=>{
+    MV.next.textContent='‘'+show(chosen)+'’';
+    RUN.seq.push(chosen); RUN.gen.push(chosen);
+    if(!REDUCED) MV.loopHero.play();
+    drawChips(); setStats(); setAnswer();
+    const done=RUN.gen.length>=MAXNEW ||
+      (RUN.gen.length>=10 && /^\s*[.!?]$/.test(chosen)) ||
+      (RUN.gen.length>=24 && /[.!?]/.test(chosen));
+    if(done){ RUN.live=false; setAnswer(); }
+  });
+  later(REDUCED?60:beat*9.6,()=>{ if(RUN.live) step(); });
+}
+
+/* ------------------------------------------------------------ controls */
+function generate(fly){
+  const v=$('pin').value;
+  stopTrace();
+  if(fly) fitFrame('E',900);
+  document.querySelectorAll('#rail button').forEach(x=>x.classList.toggle('on',fly&&x.dataset.stage==='E'));
+  startRun(v);
+}
+$('run').onclick=()=>generate(true);
+$('pin').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); generate(true); } });
+
+/* ======================================================================
+   The guided trace
+   ====================================================================== */
+const H_D1=hero('W',P_D1,C.data,3.0), H_D2=hero('B',P_D2,C.data,3.0),
+      H_D3=hero('C',P_D3,C.data,2.0), H_D4=hero('D',P_D4,C.data,2.2), H_D4b=hero('D',P_D4b,C.data,1.1);
+const TRACE=[
+ {box:[60,240,760,320], t:()=>'You type “' + ($('pin').value.trim()||'Why is the sky blue?') + '” and press return. Your device encrypts it and drops a few kilobytes into the fibre, to travel some thousands of kilometres.', run:()=>H_D1.play()},
+ {box:[60,490,1520,570], t:()=>'Meanwhile the grid is pushing perhaps twenty megawatts at the building. A gas plant, a wind farm and a solar field generate it; a step-up transformer raises it to 230 kV so the wires do not waste it on the way.'},
+ {box:[60,1050,1520,310], t:()=>'Water is drawn from a river, screened, filtered, softened and dosed. Its only job is to absorb the heat those GPUs are about to make — and there is no cooling without it.'},
+ {box:[1660,270,700,1060], t:()=>'At the fence: fibre terminates in the meet-me room, power passes the switchgear, the UPS and the transformers, and the coolant loop is handed from facility water to clean rack coolant.', run:()=>H_D2.play()},
+ {box:[2280,260,1380,820], t:()=>'Spine switches read the destination. A load balancer picks a node with capacity to spare, and the packet goes down the overhead fibre tray to row B, cabinet fourteen.'},
+ {box:[3720,60,780,1300], t:()=>'Rack B-14. The top-of-rack switch hands your request to GPU server 2. The strips down the sides feed it forty kilowatts; the manifold at the back pushes 25 °C coolant through every node.', run:()=>H_D3.play()},
+ {box:[4580,60,1220,1300], t:()=>'Inside the server, NIC 6 writes your tokens straight into the memory of GPU 6 without troubling the CPU. Eight GPUs hold one model between them and agree over NVLink after every block.', run:()=>{H_D4.play(); later(2200,()=>H_D4b.play());}},
+ {box:[5900,200,1600,760], t:()=>'Your text becomes tokens, the tokens become vectors. Eighty layers refine them: attention asks which earlier tokens matter, the MLP works out what that pattern means, and every layer is split eight ways.', run:()=>{ if(!RUN.live) startRun($('pin').value); }},
+ {box:[5900,940,1600,400], t:()=>'The last vector is scored against the whole vocabulary, softmax turns the scores into probabilities, and one token is drawn. That single word-piece is the entire output of the pass.'},
+ {box:[0,0,7560,1420], t:()=>'It races home the same way — GPU, card, switch, spine, fibre, your screen — and then the whole plate runs again for the next token, some thirty times a second.'},
+];
+let traceI=-1, traceT=null, tracePlay=true;
+const cap2=$('caption');
+function showStep(i){
+  traceI=Math.max(0,Math.min(TRACE.length-1,i));
+  const st=TRACE[traceI];
+  userMoved=false; fit(st.box[0],st.box[1],st.box[2],st.box[3],.05,1100);
+  cap2.querySelector('.step').textContent='Step '+(traceI+1)+' of '+TRACE.length;
+  cap2.querySelector('p').textContent=st.t();
+  cap2.querySelector('.dots').innerHTML=TRACE.map((_,k)=>'<i class="'+(k<=traceI?'on':'')+'"></i>').join('');
+  cap2.hidden=false;
+  $('capPrev').disabled=traceI===0;
+  if(st.run) setTimeout(st.run,950);
+  clearTimeout(traceT);
+  if(tracePlay&&traceI<TRACE.length-1) traceT=setTimeout(()=>showStep(traceI+1),9500);
+}
+function startTrace(){
+  pinned=null; info.hidden=true; hil.setAttribute('opacity',0);
+  tracePlay=true; $('capPlay').textContent='Pause'; $('capPlay').setAttribute('aria-pressed','true');
+  document.querySelectorAll('#rail button').forEach(x=>x.classList.remove('on'));
+  showStep(0);
+}
+function stopTrace(){ clearTimeout(traceT); traceI=-1; cap2.hidden=true; }
+$('trace').onclick=startTrace;
+$('capPrev').onclick=()=>showStep(traceI-1);
+$('capNext').onclick=()=>{ if(traceI>=TRACE.length-1) stopTrace(); else showStep(traceI+1); };
+$('capPlay').onclick=()=>{ tracePlay=!tracePlay; $('capPlay').textContent=tracePlay?'Pause':'Play';
+  $('capPlay').setAttribute('aria-pressed',String(tracePlay));
+  clearTimeout(traceT); if(tracePlay&&traceI<TRACE.length-1) traceT=setTimeout(()=>showStep(traceI+1),3000); };
+$('capStop').onclick=stopTrace;
+
+/* ======================================================================
+   Boot
+   ====================================================================== */
+if(REDUCED) document.documentElement.classList.add('rm');
+fitFrame('all',0);
+setTimeout(()=>fitFrame('all',0),60);
+document.querySelector('#rail button').classList.add('on');
+startRun($('pin').value);
+</script>
+</body>
+</html>
