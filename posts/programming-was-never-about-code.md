@@ -8,7 +8,7 @@ tags:
   - Career
 ---
 
-![Writing code moved to the machine; solving the problem stayed with the programmer](/programming-was-never-about-code.svg)
+![Bob the Builder's bulldozer doing the heavy lifting](https://media1.tenor.com/m/OpH3HMTF73EAAAAC/bobthe-builder-construction.gif)
 
 DHH said at Rails World that he has retired from being a professional programmer.
 
