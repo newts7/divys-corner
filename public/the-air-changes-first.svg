@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="In November the sun sets at five instead of seven, and that small shift marks winter on its way">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f5f5f7"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.2" r="0.6">
+      <stop offset="0" stop-color="#0071e3" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#0071e3" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <ellipse cx="600" cy="120" rx="520" ry="300" fill="url(#glow)"/>
+
+  <g font-family="-apple-system,'SF Pro Display',Helvetica,Arial,sans-serif" text-anchor="middle">
+    <!-- summer arc -->
+    <path d="M229 420 Q 614 -160 1000 420" fill="none" stroke="#86868b" stroke-width="6" stroke-linecap="round" stroke-dasharray="2 16" opacity="0.8"/>
+    <text x="614" y="112" font-size="20" font-weight="600" fill="#86868b">June</text>
+
+    <!-- november arc -->
+    <path d="M300 420 Q 593 80 886 420" fill="none" stroke="#0071e3" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="593" cy="250" r="22" fill="#0071e3"/>
+    <text x="593" y="212" font-size="20" font-weight="600" fill="#0071e3">November</text>
+
+    <!-- horizon -->
+    <line x1="180" y1="420" x2="1020" y2="420" stroke="#1d1d1f" stroke-width="6" stroke-linecap="round"/>
+
+    <!-- sunset markers -->
+    <circle cx="1000" cy="420" r="12" fill="#86868b"/>
+    <text x="1000" y="462" font-size="22" font-weight="600" fill="#86868b">7 PM</text>
+    <circle cx="886" cy="420" r="14" fill="#0071e3"/>
+    <text x="886" y="462" font-size="22" font-weight="700" fill="#0071e3">5 PM</text>
+  </g>
+
+  <g font-family="-apple-system,'SF Pro Display',Helvetica,Arial,sans-serif" text-anchor="middle">
+    <text x="600" y="552" font-size="30" font-weight="600" fill="#1d1d1f">The sun leaves at five now</text>
+    <text x="600" y="586" font-size="17" fill="#86868b">Terraces, chatais and rajais come back. Winter is on its way.</text>
+  </g>
+</svg>
