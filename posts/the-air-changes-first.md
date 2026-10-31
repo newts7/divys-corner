@@ -7,8 +7,6 @@ tags:
   - India
 ---
 
-![Two sun arcs over a horizon: a long summer arc setting at 7 PM and a shorter November arc setting at 5 PM](/the-air-changes-first.svg)
-
 It starts with a smell.
 
 Dry leaves. Smoke from a fire somewhere you can't see. Dew settling on dust.
